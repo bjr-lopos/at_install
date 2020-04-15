@@ -13,6 +13,7 @@ if [ ! -z "$3" ]; then
     PASS=$3
 fi
 
+printf "uninstall plugin validate_password;"
 printf "create database IF NOT EXISTS %s;\n" $DBNAME
 printf "use mysql;\n"
 if [ ! "$PASS" = "nouser" ]; then  

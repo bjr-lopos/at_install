@@ -72,7 +72,7 @@ sudo cp $LOPOSCORE_SERVICE /etc/systemd/system/
 if [ ! -e $loposCoreBin ]; then
     sudo apt-get update
     export DEBIAN_FRONTEND=noninteractive
-	sudo -E apt-get -q -y install mysql-server
+	sudo -E apt-get -q -y install mysql-server libmysqlclient-dev
     sudo mysqladmin -u root password $ROOTPASS
     sudo sed 's/\(^.*bind-address.*$\)/#\1/' -i /etc/mysql/mysql.conf.d/mysqld.cnf
     sudo service mysql restart

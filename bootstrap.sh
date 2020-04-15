@@ -79,12 +79,12 @@ if [ ! -e $loposCoreBin ]; then
     installDB
     createService
 else 
-    service loposcore stop
-    systemctl disable loposcore.service
+    sudo service loposcore stop
+    sudo systemctl disable loposcore.service
 fi
 
 sudo cp loposcore $loposCoreBin
-systemctl enable loposcore.service
-service loposcore start
+sudo systemctl enable loposcore.service
+sudo service loposcore start
 
 

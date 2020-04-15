@@ -21,22 +21,22 @@ fi
 if echo "$PARAM" | grep 'AU'; then
     echo "add user, database and access to it"
     ./initdb.sh $TARGET_DB $USERLOGIN $USERPASS > $createUserTemp
-    mysql -uroot -p$ROOTPASS < $createUserTemp
+    sudo mysql < $createUserTemp
 fi
 
 if echo "$PARAM" | grep 'IS'; then
     echo "install schema"
-    mysql -uroot -p$ROOTPASS $TARGET_DB < lopos_schema.sql
+    sudo mysql $TARGET_DB < lopos_schema.sql
 fi
 
 if echo "$PARAM" | grep 'FD'; then
     echo "flood the device table"
-    mysql -uroot -p$ROOTPASS $TARGET_DB < device.sql
+    sudo mysql $TARGET_DB < device.sql
 fi
 
 if echo "$PARAM" | grep 'T1'; then
     echo "Verify, changes to the schema can be store by using CS"
-    mysql -uroot -p$ROOTPASS $TARGET_DB
+    sudo mysql $TARGET_DB
 fi
 }
 
@@ -85,6 +85,6 @@ fi
 
 sudo cp loposcore $loposCoreBin
 sudo systemctl enable loposcore.service
-sudo service loposcore start
+sudo systemctl start loposcore.service
 
 

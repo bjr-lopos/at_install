@@ -1,10 +1,10 @@
 #!/bin/bash
 loposCoreBin=/usr/local/bin/loposcore
 ROOTPASS=LoPoS
-USERLOGIN=lopos_test
+USERLOGIN=terec
 #USERPASS=nouser
-USERPASS=lopos_test
-TARGET_DB=lopos_test
+USERPASS=t3r3c
+TARGET_DB=terec
 
 installDB() {
 createUserTemp=/tmp/loposdb_cu.sql
@@ -66,8 +66,6 @@ sudo cp $LOPOSCORE_SERVICE /etc/systemd/system/
 
 }
 
-createService
-exit
 
 #`service loposcore log | grep unrecognized` 
 #if 
@@ -76,9 +74,9 @@ if [ ! -e $loposCoreBin ]; then
     export DEBIAN_FRONTEND=noninteractive
 	sudo -E apt-get -q -y install mysql-server
     sudo mysqladmin -u root password $ROOTPASS
-    installDB
     sudo sed 's/\(^.*bind-address.*$\)/#\1/' -i /etc/mysql/mysql.conf.d/mysqld.cnf
     sudo service mysql restart
+    installDB
     createService
 else 
     service loposcore stop

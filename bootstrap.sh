@@ -119,7 +119,10 @@ if [ ! -e $LoposCoreService ]; then
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
     buildDB
 else 
-    sudo mysqldump -u$USERLOGIN -p$USERPASS --no-create-info --skip-triggers --single-transaction --lock-tables=false $TARGET_DB > $LocalData
+    #sudo mysqldump -u$USERLOGIN -p$USERPASS --no-create-info --skip-triggers --single-transaction --lock-tables=false $TARGET_DB > $LocalData
+    sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData
+    
+
     PARAM="DD"
     buildDB
     sudo service loposcore stop

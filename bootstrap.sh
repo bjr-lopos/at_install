@@ -6,7 +6,7 @@ LocalData=/tmp/data.txt
 ROOTUSER=-uroot
 ROOTPASS=-pLoPoS
 if [ -e ./rootpass ]; then
-    ROOTPASS=-p\"`cat ./rootpass`\"
+    ROOTPASS=-p`cat ./rootpass`
 fi  
 USERLOGIN=terec
 #USERPASS=nouser
@@ -29,7 +29,7 @@ if [ ! -z "$1" ]; then
 fi
 
 if [ ! -e $delDBTemp ]; then
-    ./deldb.sh $TARGET_DB $USERLOGIN $USERPASS > $delDBTemp
+    ./deldb.sh $TARGET_DB `echo $ROOTUSER | cut -c 3-` `echo $ROOTPASS | cut -c 3-` > $delDBTemp
 fi
 
 if [ ! -e $delUserTemp ]; then
@@ -107,7 +107,7 @@ if [ ! -e $LoposCoreService ]; then
     export DEBIAN_FRONTEND=noninteractive
     if [ -z "`dpkg -l | grep mysql-server`"]; then
         sudo -E apt-get -q -y install mysql-server
-        sudo mysqladmin `$ROOTPASS | cut -c 3-` 
+        sudo mysqladmin `echo $ROOTPASS | cut -c 3-` 
         sudo sed 's/\(^.*bind-address.*$\)/#\1/' -i /etc/mysql/mysql.conf.d/mysqld.cnf
         sudo service mysql restart
     fi

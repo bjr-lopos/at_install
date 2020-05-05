@@ -6,7 +6,7 @@ LocalData=/tmp/data.txt
 ROOTUSER=-uroot
 ROOTPASS=-pLoPoS
 if [ -e ./rootpass ]; then
-    ROOTPASS=-p\'`cat ./rootpass`\'
+    ROOTPASS=-p"`cat ./rootpass`"
 fi  
 USERLOGIN=terec
 #USERPASS=nouser

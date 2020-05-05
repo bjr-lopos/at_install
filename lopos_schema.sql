@@ -227,13 +227,16 @@ DROP TABLE IF EXISTS `todo`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `todo` (
   `addr` int(5) NOT NULL DEFAULT '0',
+  `scheduleAT` int(4) NOT NULL,
   `scenario` int(3) NOT NULL DEFAULT '0',
+  `actor` int(2) NOT NULL,
   `persistent` int(1) NOT NULL DEFAULT '0',
   `active` int(1) NOT NULL DEFAULT '0',
   `repeatSlots` int(4) NOT NULL DEFAULT '0',
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  PRIMARY KEY (`addr`,`scenario`,`updated`),
-  KEY `index2` (`updated`)
+  KEY `time` (`updated`),
+  KEY `device` (`addr`,`scheduleAT`),
+  KEY `recent_schedule_device` (`addr`,`updated`,`scheduleAT`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -304,4 +307,4 @@ CREATE TABLE `version` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-04-08  8:28:09
+-- Dump completed on 2020-04-26 19:20:41

@@ -38,18 +38,18 @@ fi
 
 
 if echo "$PARAM" | grep 'AU'; then
-    echo "add user, database and access to it"
+    echo "add user, database and access to it: sudo mysql  $ROOTUSER $ROOTPASS < $createUserTemp"
     ./initdb.sh $TARGET_DB $USERLOGIN $USERPASS > $createUserTemp
     sudo mysql  $ROOTUSER $ROOTPASS < $createUserTemp
 fi
 
 if echo "$PARAM" | grep 'IS'; then
-    echo "install schema"
-    sudo mysql  $ROOTUSER $ROOTPASS $TARGET_DB < lopos_schema.sql
+    echo "install schema: sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB < lopos_schema.sql"
+    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB < lopos_schema.sql
 fi
 
 if echo "$PARAM" | grep 'FD'; then
-    echo "flood the device table"
+    echo "flood the device table: sudo mysql  $ROOTUSER $ROOTPASS $TARGET_DB < device.sql"
     sudo mysql  $ROOTUSER $ROOTPASS $TARGET_DB < device.sql
 fi
 
@@ -59,13 +59,13 @@ if echo "$PARAM" | grep 'T1'; then
 fi
 
 if echo "$PARAM" | grep 'DD'; then
-    echo "delete database"
+    echo "delete database: mysql $ROOTUSER $ROOTPASS $TARGET_DB < $delDBTemp"
     mysql $ROOTUSER $ROOTPASS $TARGET_DB < $delDBTemp
     rm $delDBTemp
 fi
 
 if echo "$PARAM" | grep 'DU'; then
-    echo "delete user"
+    echo "delete user: mysql $ROOTUSER $ROOTPASS < $delUserTemp"
     mysql $ROOTUSER $ROOTPASS < $delUserTemp
     rm $delUserTemp    
 fi

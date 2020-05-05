@@ -83,7 +83,7 @@ Description=loposcore service
 
 [Service]
 Environment=SERIAL_PORT=/dev/ttyUSB0
-ExecStart=$loposCoreBin dev=\${SERIAL_PORT} db_user=$USERLOGIN db_pass=$USERPASS db_name=$TARGET_DB dumpFrames2Log=no dumpHdlInfo2Log=000000000100010000 dumpGenInfo2Log=0101
+ExecStart=$loposCoreBin dev=\${SERIAL_PORT} db_user=$USERLOGIN db_pass=$USERPASS db_name=$TARGET_DB dumpFrames2Log=no dumpHdlInfo2Log=0000000000100010000 dumpGenInfo2Log=01001
 Restart=always
 StandardOutput=syslog
 StandardError=syslog
@@ -114,14 +114,11 @@ if [ ! -e $LoposCoreService ]; then
     if [ -z "`dpkg -l | grep libmysqlclient-dev`"]; then
         sudo -E apt-get -q -y install libmysqlclient-dev
     fi
-    createService
     PARAM="AU IS FD"
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
     buildDB
 else 
-    #sudo mysqldump -u$USERLOGIN -p$USERPASS --no-create-info --skip-triggers --single-transaction --lock-tables=false $TARGET_DB > $LocalData
     sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData
-    
 
     PARAM="DD"
     buildDB
@@ -132,6 +129,7 @@ else
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData
 fi
 
+createService
 sudo cp loposcore $loposCoreBin
 sudo systemctl enable loposcore.service
 sudo systemctl start loposcore.service

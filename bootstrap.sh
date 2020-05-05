@@ -102,6 +102,7 @@ sudo cp $LoposCoreServiceTmp $LoposCoreService
 #`service loposcore log | grep unrecognized` 
 #if 
 if [ ! -e $LoposCoreService ]; then
+    echo "$LoposCoreService not found"
     sudo apt-get update
     export DEBIAN_FRONTEND=noninteractive
     if [ -z "`dpkg -l | grep mysql-server`"]; then

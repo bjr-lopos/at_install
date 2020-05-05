@@ -1,7 +1,7 @@
 #!/bin/bash
 loposCoreBin=/usr/local/bin/loposcore
 LoposCoreService=/etc/systemd/system/loposcore.service
-LocalData=/tmp/data.txt
+LocalData=/tmp/loposdb_data.sql
 
 ROOTUSER=-uroot
 ROOTPASS=-pLoPoS

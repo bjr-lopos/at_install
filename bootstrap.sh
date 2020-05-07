@@ -83,7 +83,7 @@ Description=loposcore service
 
 [Service]
 Environment=SERIAL_PORT=/dev/ttyUSB0
-ExecStart=$loposCoreBin dev=\${SERIAL_PORT} db_user=$USERLOGIN db_pass=$USERPASS db_name=$TARGET_DB dumpFrames2Log=no dumpHdlInfo2Log=0000000000100010000 dumpGenInfo2Log=01001
+ExecStart=$loposCoreBin dev=\${SERIAL_PORT} db_user=$USERLOGIN db_pass=$USERPASS db_name=$TARGET_DB dumpFrames2Log=no dumpHdlInfo2Log=0000000000100000000 dumpGenInfo2Log=01001
 Restart=always
 StandardOutput=syslog
 StandardError=syslog

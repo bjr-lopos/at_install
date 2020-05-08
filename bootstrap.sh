@@ -6,8 +6,10 @@ LocalData=/tmp/loposdb_data.sql
 ROOTUSER=-uroot
 ROOTPASS=-pLoPoS
 if [ -e ./rootpass ]; then
-    ROOTPASS=-p`cat ./rootpass`
+    ROOTPASS=`cat ./rootpass`
 fi  
+echo will use :$ROOTUSER:$ROOTPASS:
+sleep 2
 USERLOGIN=terec
 #USERPASS=nouser
 USERPASS=t3r3c
@@ -59,14 +61,14 @@ if echo "$PARAM" | grep 'T1'; then
 fi
 
 if echo "$PARAM" | grep 'DD'; then
-    echo "delete database: mysql $ROOTUSER $ROOTPASS $TARGET_DB < $delDBTemp"
-    mysql $ROOTUSER $ROOTPASS $TARGET_DB < $delDBTemp
+    echo "delete database: sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB < $delDBTemp"
+    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB < $delDBTemp
     rm $delDBTemp
 fi
 
 if echo "$PARAM" | grep 'DU'; then
-    echo "delete user: mysql $ROOTUSER $ROOTPASS < $delUserTemp"
-    mysql $ROOTUSER $ROOTPASS < $delUserTemp
+    echo "delete user: sudo  mysql $ROOTUSER $ROOTPASS < $delUserTemp"
+    sudo mysql $ROOTUSER $ROOTPASS < $delUserTemp
     rm $delUserTemp    
 fi
 
@@ -126,6 +128,7 @@ else
     sudo systemctl disable loposcore.service
     PARAM="IS"
     buildDB
+    mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData
 fi
 

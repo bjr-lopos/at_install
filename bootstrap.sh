@@ -139,6 +139,7 @@ fi
 
 createService
 sudo cp loposcore $loposCoreBin
+sudo cp libpaho-mqtt3c.so.1 /usr/local/lib/
 sudo systemctl enable loposcore.service
 sudo systemctl start loposcore.service
 

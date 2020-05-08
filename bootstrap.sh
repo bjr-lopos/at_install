@@ -30,10 +30,12 @@ if [ ! -z "$1" ]; then
     PARAM="$*"
 fi
 
+echo "Will prep deldb, in case we would need in a next run/update and schema is updated"
 if [ ! -e $delDBTemp ]; then
     ./deldb.sh $TARGET_DB `echo $ROOTUSER | cut -c 3-` `echo $ROOTPASS | cut -c 3-` > $delDBTemp
 fi
 
+echo "Will prep deluser, in case we would need in a next run/update, and is updated."
 if [ ! -e $delUserTemp ]; then
     ./deluser.sh $TARGET_DB $USERLOGIN $USERPASS > $delUserTemp
 fi
@@ -120,14 +122,17 @@ if [ ! -e $LoposCoreService ]; then
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
     buildDB
 else 
+    echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData"
     sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData
 
     PARAM="DD"
     buildDB
+
     sudo service loposcore stop
     sudo systemctl disable loposcore.service
     PARAM="IS"
     buildDB
+    echo "Will run: mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'"
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData
 fi

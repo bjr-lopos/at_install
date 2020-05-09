@@ -132,9 +132,13 @@ else
     sudo systemctl disable loposcore.service
     PARAM="IS"
     buildDB
+    echo
+    echo "Will run: sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"
+    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData
+    echo "please check for errors above! If schema is not compatible. Data may be lost! Please run manualy!"
+    echo
     echo "Will run: mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'"
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
-    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData
 fi
 
 createService

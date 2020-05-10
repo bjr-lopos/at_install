@@ -3,17 +3,7 @@ loposCoreBin=/usr/local/bin/loposcore
 LoposCoreService=/etc/systemd/system/loposcore.service
 LocalData=/tmp/loposdb_data.sql
 
-ROOTUSER=-uroot
-ROOTPASS=-pLoPoS
-if [ -e ./rootpass ]; then
-    ROOTPASS=`cat ./rootpass`
-fi  
-echo will use :$ROOTUSER:$ROOTPASS:
-sleep 2
-USERLOGIN=terec
-#USERPASS=nouser
-USERPASS=t3r3c
-TARGET_DB=terec
+source ./local_cfg
 
 buildDB() {
 createUserTemp=/tmp/loposdb_cu.sql

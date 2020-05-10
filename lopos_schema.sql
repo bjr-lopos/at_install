@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 5.7.29, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.30, for Linux (x86_64)
 --
 -- Host: localhost    Database: lopos_test
 -- ------------------------------------------------------
--- Server version	5.7.29-0ubuntu0.18.04.1
+-- Server version	5.7.30-0ubuntu0.18.04.1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -67,7 +67,7 @@ CREATE TABLE `device` (
   UNIQUE KEY `addr_UNIQUE` (`addr`),
   UNIQUE KEY `mac_UNIQUE` (`mac`),
   KEY `mac` (`mac`)
-) ENGINE=InnoDB AUTO_INCREMENT=72103 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -88,6 +88,24 @@ CREATE TABLE `dfu` (
   CONSTRAINT `fk_dfu_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_dfu_2` FOREIGN KEY (`version`) REFERENCES `version` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `map`
+--
+
+DROP TABLE IF EXISTS `map`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `map` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `x1` int(11) DEFAULT NULL,
+  `y1` int(11) DEFAULT NULL,
+  `x2` int(11) DEFAULT NULL,
+  `y2` int(11) DEFAULT NULL,
+  `mapcol` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -191,7 +209,7 @@ CREATE TABLE `tag` (
   UNIQUE KEY `addr_UNIQUE` (`addr`),
   KEY `fk_tag_1_idx` (`addr`),
   CONSTRAINT `fk_tag_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -219,6 +237,19 @@ CREATE TABLE `tdoa` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Temporary table structure for view `timeInfo`
+--
+
+DROP TABLE IF EXISTS `timeInfo`;
+/*!50001 DROP VIEW IF EXISTS `timeInfo`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE VIEW `timeInfo` AS SELECT 
+ 1 AS `lastInsert`,
+ 1 AS `firstInsert`*/;
+SET character_set_client = @saved_cs_client;
+
+--
 -- Table structure for table `todo`
 --
 
@@ -234,6 +265,7 @@ CREATE TABLE `todo` (
   `active` int(1) NOT NULL DEFAULT '0',
   `repeatSlots` int(4) NOT NULL DEFAULT '0',
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`addr`,`scheduleAT`,`scenario`,`actor`,`updated`),
   KEY `time` (`updated`),
   KEY `device` (`addr`,`scheduleAT`),
   KEY `recent_schedule_device` (`addr`,`updated`,`scheduleAT`)
@@ -297,6 +329,24 @@ CREATE TABLE `version` (
   UNIQUE KEY `id_UNIQUE` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Final view structure for view `timeInfo`
+--
+
+/*!50001 DROP VIEW IF EXISTS `timeInfo`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = latin1 */;
+/*!50001 SET character_set_results     = latin1 */;
+/*!50001 SET collation_connection      = latin1_swedish_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`lopos_test`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `timeInfo` AS select max(`position`.`updated`) AS `lastInsert`,min(`position`.`updated`) AS `firstInsert` from `position` limit 1 */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -307,4 +357,4 @@ CREATE TABLE `version` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-04-26 19:20:41
+-- Dump completed on 2020-05-10 19:21:50

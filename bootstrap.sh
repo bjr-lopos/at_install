@@ -79,7 +79,7 @@ Description=loposmath service
 #After=mysql.service
 
 [Service]
-ExecStart=python3 $loposMathBin
+ExecStart=/usr/bin/python3 $loposMathBin
 Restart=always
 StandardOutput=syslog
 StandardError=syslog

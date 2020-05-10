@@ -1,4 +1,6 @@
 #!/bin/bash
+loposMathBin=/usr/local/bin/loposTDoA2Pos.py
+LoposMathService=/etc/systemd/system/loposmath.service
 loposCoreBin=/usr/local/bin/loposcore
 LoposCoreService=/etc/systemd/system/loposcore.service
 LocalData=/tmp/loposdb_data.sql
@@ -77,7 +79,33 @@ fi
 }
 
 
-createService() {
+
+createMathService() {
+LoposMathServiceTmp=/tmp/`basename $LoposMathService`
+cat << EOT > $LoposMathServiceTmp
+[Unit]
+Description=loposmath service
+#Requires=mysql.service
+#After=mysql.service
+
+[Service]
+ExecStart=python3 $loposMathBin
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=lcs
+
+[Install]
+#WantedBy=multi-user.target mysql.service
+WantedBy=multi-user.target
+EOT
+
+sudo cp $LoposMathServiceTmp $LoposMathService
+
+}
+
+
+createCoreService() {
 LoposCoreServiceTmp=/tmp/`basename $LoposCoreService`
 cat << EOT > $LoposCoreServiceTmp
 [Unit]
@@ -129,8 +157,6 @@ else
     PARAM="DD"
     buildDB
 
-    sudo service loposcore stop
-    sudo systemctl disable loposcore.service
     PARAM="IS"
     buildDB
     echo
@@ -140,11 +166,25 @@ else
     echo
     echo "Will run: mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'"
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
+
+
+    sudo service loposmath stop
+    sudo systemctl disable loposmath.service
+
+    sudo service loposcore stop
+    sudo systemctl disable loposcore.service
+
 fi
 
-createService
-sudo cp loposcore $loposCoreBin
+
+sudo cp `basename $loposMathBin` $loposMathBin
+createMathService
+sudo systemctl enable loposmath.service
+sudo systemctl start loposmath.service
+
+sudo cp `basename $loposCoreBin` $loposCoreBin
 sudo cp libpaho-mqtt3c.so.1 /usr/local/lib/
+createCoreService
 sudo systemctl enable loposcore.service
 sudo systemctl start loposcore.service
 

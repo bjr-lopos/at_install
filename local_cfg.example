@@ -1,0 +1,7 @@
+ROOTUSER=-uroot
+ROOTPASS=-padmin
+USERLOGIN=lcluser
+#USERPASS=nouser
+USERPASS=lclpass
+TARGET_DB=mydb
+

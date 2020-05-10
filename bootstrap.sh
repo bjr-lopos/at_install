@@ -120,6 +120,7 @@ if [ ! -e $LoposCoreService ]; then
     fi
     PARAM="AU IS FD"
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
+    ldconfig /usr/local/lib
     buildDB
 else 
     echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData"

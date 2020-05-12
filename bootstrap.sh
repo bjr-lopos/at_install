@@ -153,8 +153,12 @@ else
     echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData"
     sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData
     if [ -z "`cat $LocalData`" ]; then
-	echo failed to store DATA. Please check!!!!!
-	exit
+	echo failed to store DATA with Locks.
+    	sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --single-transaction $TARGET_DB > $LocalData
+    	if [ -z "`cat $LocalData`" ]; then
+	    echo failed to store DATA. Please check!!!!!
+	    exit
+	fi
     fi
 
     PARAM="DD"

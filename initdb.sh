@@ -13,7 +13,6 @@ if [ ! -z "$3" ]; then
     PASS=$3
 fi
 
-printf "INSTALL PLUGIN validate_password SONAME 'validate_password.so';"
 printf "uninstall plugin validate_password;"
 printf "create database IF NOT EXISTS %s;\n" $DBNAME
 printf "use mysql;\n"
@@ -32,7 +31,6 @@ Delete_priv = \"N\",
 Index_priv  = \"Y\", 
 Execute_priv  = \"Y\", 
 Create_view_priv = \"Y\", 
-Lock_tables_priv = \"Y\", 
 Show_view_priv = \"Y\" 
 where user = \"%s\" AND host=\"localhost\";\n\n"  $USER
 

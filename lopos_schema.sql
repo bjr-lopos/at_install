@@ -237,19 +237,6 @@ CREATE TABLE `tdoa` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Temporary table structure for view `timeInfo`
---
-
-DROP TABLE IF EXISTS `timeInfo`;
-/*!50001 DROP VIEW IF EXISTS `timeInfo`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE VIEW `timeInfo` AS SELECT 
- 1 AS `lastInsert`,
- 1 AS `firstInsert`*/;
-SET character_set_client = @saved_cs_client;
-
---
 -- Table structure for table `todo`
 --
 
@@ -330,24 +317,6 @@ CREATE TABLE `version` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Final view structure for view `timeInfo`
---
-
-/*!50001 DROP VIEW IF EXISTS `timeInfo`*/;
-/*!50001 SET @saved_cs_client          = @@character_set_client */;
-/*!50001 SET @saved_cs_results         = @@character_set_results */;
-/*!50001 SET @saved_col_connection     = @@collation_connection */;
-/*!50001 SET character_set_client      = latin1 */;
-/*!50001 SET character_set_results     = latin1 */;
-/*!50001 SET collation_connection      = latin1_swedish_ci */;
-/*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`lopos_test`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `timeInfo` AS select max(`position`.`updated`) AS `lastInsert`,min(`position`.`updated`) AS `firstInsert` from `position` limit 1 */;
-/*!50001 SET character_set_client      = @saved_cs_client */;
-/*!50001 SET character_set_results     = @saved_cs_results */;
-/*!50001 SET collation_connection      = @saved_col_connection */;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

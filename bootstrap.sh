@@ -11,6 +11,7 @@ buildDB() {
 createUserTemp=/tmp/loposdb_cu.sql
 delUserTemp=/tmp/loposdb_du.sql
 delDBTemp=/tmp/loposdb_dd.sql
+filteredSchema=/tmp/loposdb_schema.sql
 
 if [ -z "$PARAM" ]; then
     PARAM="AU IS FD T1"
@@ -41,7 +42,8 @@ fi
 
 if echo "$PARAM" | grep 'IS'; then
     echo "install schema: sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB < lopos_schema.sql"
-    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB < lopos_schema.sql
+    grep -v -E 'DEFINER=' lopos_schema.sql > $filteredSchema
+    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB < $filteredSchema
 fi
 
 if echo "$PARAM" | grep 'FD'; then
@@ -79,6 +81,8 @@ Description=loposmath service
 #After=mysql.service
 
 [Service]
+User=lopos
+Group=lopos
 ExecStart=/usr/bin/python3 $loposMathBin
 Restart=always
 StandardOutput=syslog
@@ -120,6 +124,24 @@ sudo cp $LoposCoreServiceTmp $LoposCoreService
 
 }
 
+if [ "$1" = "fixuser" ]; then
+    PARAM="DU"
+    buildDB
+
+    PARAM="AU"
+    buildDB
+    exit
+fi
+
+if [ "$1" = "fixdb" ]; then
+    PARAM="DU"
+    buildDB
+    PARAM="AU IS FD"
+    buildDB
+    mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
+    exit
+fi
+
 
 #`service loposcore log | grep unrecognized` 
 #if 
@@ -143,8 +165,18 @@ if [ ! -e $LoposCoreService ]; then
     ldconfig /usr/local/lib
     buildDB
 else 
-    echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData"
-    sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData
+    echo "Will run: sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo' "
+    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo' 
+    echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB > $LocalData"
+    sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB > $LocalData
+    if [ -z "`cat $LocalData`" ]; then
+	echo failed to store DATA with Locks.
+    	sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob --single-transaction $TARGET_DB > $LocalData
+    	if [ -z "`cat $LocalData`" ]; then
+	    echo failed to store DATA. Please check!!!!!
+	    exit
+	fi
+    fi
 
     PARAM="DD"
     buildDB
@@ -153,12 +185,16 @@ else
     buildDB
     echo
     echo "Will run: sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"
-    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData
+    #sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DBSET -e "SET FOREIGN_KEY_CHECKS=0"
+    strings $LocalData | grep device > $LocalData"_Dev.sql"
+    strings $LocalData | grep -v device > $LocalData"_n_Dev.sql"
+    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_Dev.sql"
+    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_n_Dev.sql"
+    #sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DBSET -e "SET FOREIGN_KEY_CHECKS=1"
     echo "please check for errors above! If schema is not compatible. Data may be lost! Please run manualy!"
     echo
     echo "Will run: mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'"
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
-
 
     sudo service loposmath stop
     sudo systemctl disable loposmath.service

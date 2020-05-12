@@ -81,6 +81,8 @@ Description=loposmath service
 #After=mysql.service
 
 [Service]
+User=lopos
+Group=lopos
 ExecStart=/usr/bin/python3 $loposMathBin
 Restart=always
 StandardOutput=syslog

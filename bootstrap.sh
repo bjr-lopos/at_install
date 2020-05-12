@@ -120,6 +120,15 @@ sudo cp $LoposCoreServiceTmp $LoposCoreService
 
 }
 
+if [ "$1" = "fixuser" ]; then
+    PARAM="DU"
+    buildDB
+
+    PARAM="AU"
+    buildDB
+    exit
+fi
+
 
 #`service loposcore log | grep unrecognized` 
 #if 
@@ -143,6 +152,10 @@ if [ ! -e $LoposCoreService ]; then
 else 
     echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData"
     sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info $TARGET_DB > $LocalData
+    if [ -z "`cat $LocalData`" ]; then
+	echo failed to store DATA. Please check!!!!!
+	exit
+    fi
 
     PARAM="DD"
     buildDB

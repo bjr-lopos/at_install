@@ -12,12 +12,15 @@ import scipy.optimize as optimization
 import time
 import paho.mqtt.client as mqtt
 import mysql.connector
+import functools
+print = functools.partial(print, flush=True)
+
 
 mydb = mysql.connector.connect(
   host="localhost",
-  user="lopos_test",
-  passwd="lopos_test",
-  database="lopos_test"  
+  user="ilvo",
+  passwd="ilv0",
+  database="ilvo"  
 )
 #print(mydb)
 mycursor = mydb.cursor()
@@ -94,7 +97,8 @@ def calculateAndPlotPosition(jsondata):
         anchorB = ddoaEntry['b']
         ddoa = ddoaEntry['v']
         #print("will look up ", anchorA, anchorB, anchorSync)
-        ddoaAdj= (interDistAnchor[anchorA,anchorSync] - interDistAnchor[anchorB,anchorSync])/2 - ddoa
+        ddoaAdj= ddoa + (interDistAnchor[anchorA,anchorSync] - interDistAnchor[anchorB,anchorSync])
+        #ddoaAdj= ddoaAdj/2.0
         print("adjusted  A:", anchorA, " B: ", anchorB, " S: ", anchorSync, " DDoA: ", ddoaAdj, " DAS: ", interDistAnchor[anchorA,anchorSync], " DBS: ", interDistAnchor[anchorB,anchorSync])
         AnchorsAx.append(anchorPosition[anchorA,0])
         AnchorsAy.append(anchorPosition[anchorA,1])

@@ -17,9 +17,9 @@ print = functools.partial(print, flush=True)
 
 mydb = mysql.connector.connect(
   host="localhost",
-  user="ilvo",
-  passwd="ilv0",
-  database="ilvo"  
+  user="lopos_test",
+  passwd="lopos_test",
+  database="lopos_test"  
 )
 #print(mydb)
 mycursor = mydb.cursor()

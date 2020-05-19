@@ -161,9 +161,9 @@ if [ ! -e $LoposCoreService ]; then
     pip3 install --user numpy
 
     PARAM="AU IS FD"
+    buildDB
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
     ldconfig /usr/local/lib
-    buildDB
 else 
     echo "Will run: sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo' "
     sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo' 

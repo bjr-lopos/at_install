@@ -14,10 +14,6 @@ import paho.mqtt.client as mqtt
 import mysql.connector
 import functools
 print = functools.partial(print, flush=True)
-<<<<<<< HEAD
-=======
-
->>>>>>> 517dabbb0dd1be055386b4b66567b5af33ddd653
 
 mydb = mysql.connector.connect(
   host="localhost",

@@ -158,6 +158,8 @@ if [ ! -e $LoposCoreService ]; then
     if [ -z "`dpkg -l | grep libmysqlclient-dev`"]; then
         sudo -E apt-get -q -y install libmysqlclient-dev
     fi
+    pip3 install --user numpy
+
     PARAM="AU IS FD"
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
     ldconfig /usr/local/lib

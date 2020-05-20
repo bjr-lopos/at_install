@@ -166,9 +166,11 @@ if [ ! -e $LoposCoreService ]; then
     ldconfig /usr/local/lib
 else 
     echo "Will run: sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo' "
-    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo' 
-    echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB > $LocalData"
-    sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB > $LocalData
+    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo'
+    echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB >> $LocalData"
+    echo 'SET FOREIGN_KEY_CHECKS=0;'  > $LocalData
+    sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB >> $LocalData
+    echo 'SET FOREIGN_KEY_CHECKS=1;'  >> $LocalData
     if [ -z "`cat $LocalData`" ]; then
 	echo failed to store DATA with Locks.
     	sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob --single-transaction $TARGET_DB > $LocalData

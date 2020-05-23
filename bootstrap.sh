@@ -193,7 +193,7 @@ else
 
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_Dev.sql"
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_n_DevSys.sql"
-    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_n_Sys.sql"
+    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_Sys.sql"
     #sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'SET FOREIGN_KEY_CHECKS=1'
 
     echo "please check for errors above! If schema is not compatible. Data may be lost! Please run manualy!"

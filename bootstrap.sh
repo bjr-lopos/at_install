@@ -185,12 +185,17 @@ else
     buildDB
     echo
     echo "Will run: sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"
-    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'SET FOREIGN_KEY_CHECKS=0'
-    strings $LocalData | grep device > $LocalData"_Dev.sql"
-    strings $LocalData | grep -v device > $LocalData"_n_Dev.sql"
+
+    #sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'SET FOREIGN_KEY_CHECKS=0'
+    strings $LocalData | grep - E ' `device` V' > $LocalData"_Dev.sql"
+    strings $LocalData | grep -v -E ' `device` V| `sys` V' > $LocalData"_n_DevSys.sql"
+    strings $LocalData | grep - E ' `sys` V' > $LocalData"_Sys.sql"
+
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_Dev.sql"
-    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_n_Dev.sql"
-    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'SET FOREIGN_KEY_CHECKS=1'
+    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_n_DevSys.sql"
+    sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_n_Sys.sql"
+    #sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'SET FOREIGN_KEY_CHECKS=1'
+
     echo "please check for errors above! If schema is not compatible. Data may be lost! Please run manualy!"
     echo
     echo "Will run: mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'"

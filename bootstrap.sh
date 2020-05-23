@@ -188,9 +188,10 @@ else
 
     sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e "SET sql_mode='NO_AUTO_VALUE_ON_ZERO'";
     #sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'SET FOREIGN_KEY_CHECKS=0'
-    strings $LocalData | grep - E ' `device` V' > $LocalData"_Dev.sql"
-    strings $LocalData | grep -v -E ' `device` V| `sys` V' > $LocalData"_n_DevSys.sql"
-    strings $LocalData | grep - E ' `sys` V' > $LocalData"_Sys.sql"
+
+    strings $LocalData | grep -E ' [`]device[`] V' > $LocalData"_Dev.sql"
+    strings $LocalData | grep -v -E ' [`]device[`] V| [`]sys[`] V' > $LocalData"_n_DevSys.sql"
+    strings $LocalData | grep -E ' [`]sys[`] V' > $LocalData"_Sys.sql" 
 
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_Dev.sql"
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_n_DevSys.sql"

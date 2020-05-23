@@ -168,16 +168,14 @@ else
     echo "Will run: sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo' "
     sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo'
     echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB >> $LocalData"
-    echo 'SET FOREIGN_KEY_CHECKS=0;'  > $LocalData
-    sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB >> $LocalData
-    echo 'SET FOREIGN_KEY_CHECKS=1;'  >> $LocalData
+    sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB > $LocalData
     if [ -z "`cat $LocalData`" ]; then
-	echo failed to store DATA with Locks.
-    	sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob --single-transaction $TARGET_DB > $LocalData
-    	if [ -z "`cat $LocalData`" ]; then
-	    echo failed to store DATA. Please check!!!!!
-	    exit
-	fi
+        echo failed to store DATA with Locks.
+            sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob --single-transaction $TARGET_DB > $LocalData
+            if [ -z "`cat $LocalData`" ]; then
+            echo failed to store DATA. Please check!!!!!
+            exit
+        fi
     fi
 
     PARAM="DD"
@@ -187,12 +185,12 @@ else
     buildDB
     echo
     echo "Will run: sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"
-    #sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DBSET -e "SET FOREIGN_KEY_CHECKS=0"
+    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'SET -e "SET FOREIGN_KEY_CHECKS=0'
     strings $LocalData | grep device > $LocalData"_Dev.sql"
     strings $LocalData | grep -v device > $LocalData"_n_Dev.sql"
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_Dev.sql"
     sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB < $LocalData"_n_Dev.sql"
-    #sudo mysql -u$USERLOGIN -p$USERPASS $TARGET_DBSET -e "SET FOREIGN_KEY_CHECKS=1"
+    sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'SET -e "SET FOREIGN_KEY_CHECKS=1'
     echo "please check for errors above! If schema is not compatible. Data may be lost! Please run manualy!"
     echo
     echo "Will run: mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'"

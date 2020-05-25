@@ -253,6 +253,8 @@ CREATE TABLE `position` (
   `y` int(7) DEFAULT NULL,
   `z` int(7) DEFAULT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `numHyperbola` int(3) DEFAULT NULL,
+  `numPyTime` int(5) DEFAULT NULL,
   PRIMARY KEY (`addr`,`updated`),
   CONSTRAINT `fk_position_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;

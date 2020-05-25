@@ -87,6 +87,7 @@ def calculateAndPlotPosition(jsondata):
     AnchorsBz=[]
 
     DDoAValues=[]
+    numHyperbola = 0
     
     #for ddoaEntry in jsondata['ddoa']:
     #    print("row", ddoaEntry)
@@ -106,6 +107,7 @@ def calculateAndPlotPosition(jsondata):
         AnchorsBy.append(anchorPosition[anchorB,1])
         AnchorsBz.append(anchorPosition[anchorB,2])
         DDoAValues.append(ddoaAdj)
+        numHyperbola = numHyperbola + 1
     startGuess = (anchorPosition[anchorSync,0], anchorPosition[anchorSync,1])
     Xmin = min(min(AnchorsAx),min(AnchorsBx))
     Ymin = min(min(AnchorsAy),min(AnchorsBy))
@@ -113,14 +115,14 @@ def calculateAndPlotPosition(jsondata):
     Ymax = max(max(AnchorsAy),max(AnchorsBy))
     Xrange=Xmax-Xmin
     Yrange=Ymax-Ymin
-    Xmin=Xmin-Xrange*0.5
-    Ymin=Ymin-Yrange*0.5
-    Xmax=Xmax+Xrange*0.5
-    Ymax=Ymax+Yrange*0.5
+    Xmin=Xmin-Xrange*0.1
+    Ymin=Ymin-Yrange*0.1
+    Xmax=Xmax+Xrange*0.1
+    Ymax=Ymax+Yrange*0.1
     print (Xmin, Ymin, Xmax, Ymax)
     #to be defined
     bnds=((Xmin, Ymin), (Xmax, Ymax))
-    t1=int(round(time.time() * 1000))
+    t1=int(round(time.time() * 1000000))
     result = optimization.curve_fit(
         func_curvefit,
         (AnchorsAx,AnchorsAy,AnchorsAz,AnchorsBx,AnchorsBy,AnchorsBz), 
@@ -128,18 +130,19 @@ def calculateAndPlotPosition(jsondata):
         p0=startGuess,
         method='trf',
         bounds=bnds)[0]
-    t2=int(round(time.time() * 1000))
+    t2=int(round(time.time() * 1000000))
     jsonObj = {
         "asn":ASNid,
         "dev":DEVid,
         "x":result[0],
         "y":result[1],
         "z":tagz,
-        "t":t2-t1
+        "t":t2-t1,
+        "nH":numHyperbola
     }
     print(jsonObj)
-    sql="insert into position (addr, asn, x, y, z) values (%s,%s,%s,%s,%s)"
-    val=( DEVid, ASNid, int(round(result[0])), int(round(result[1])), int(round(tagz)) )
+    sql="insert into position (addr, asn, x, y, z, numHyperbola, numPyTime) values (%s,%s,%s,%s,%s,%s,%s)"
+    val=( DEVid, ASNid, int(round(result[0])), int(round(result[1])), int(round(tagz)), numHyperbola, t2-t1)
     print(sql, val)
     try:
         mycursor.execute(sql, val)

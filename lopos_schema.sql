@@ -271,6 +271,7 @@ CREATE TABLE `stat` (
   `addr` int(5) NOT NULL,
   `asn` int(16) NOT NULL DEFAULT '0',
   `version` int(11) NOT NULL DEFAULT '0',
+  `mac` varchar(17) DEFAULT NULL,
   `vbattRatio` int(3) NOT NULL DEFAULT '0',
   `drift` int(6) NOT NULL DEFAULT '0',
   `beaconRSSI` int(3) NOT NULL DEFAULT '0',
@@ -466,4 +467,4 @@ CREATE TABLE `version` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-05-25 18:39:27
+-- Dump completed on 2020-05-28 11:15:55

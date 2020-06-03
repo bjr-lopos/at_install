@@ -230,6 +230,8 @@ DROP TABLE IF EXISTS `motion`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `motion` (
   `addr` int(5) NOT NULL,
+  `asn` int(20) DEFAULT NULL,
+  `idx` int(3) DEFAULT NULL,
   `x` int(11) DEFAULT NULL,
   `y` int(11) DEFAULT NULL,
   `z` int(11) DEFAULT NULL,

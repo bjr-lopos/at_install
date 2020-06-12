@@ -242,6 +242,21 @@ CREATE TABLE `motion` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `plan`
+--
+
+DROP TABLE IF EXISTS `plan`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `plan` (
+  `addr` int(5) NOT NULL,
+  `scenario` int(3) NOT NULL,
+  `interval` int(5) DEFAULT NULL,
+  PRIMARY KEY (`addr`,`scenario`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `position`
 --
 
@@ -370,14 +385,12 @@ DROP TABLE IF EXISTS `todo`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `todo` (
   `addr` int(5) NOT NULL DEFAULT '0',
-  `scheduleAT` int(4) NOT NULL,
-  `scenario` int(3) NOT NULL DEFAULT '0',
-  `actor` int(2) NOT NULL,
-  `persistent` int(1) NOT NULL DEFAULT '0',
-  `active` int(1) NOT NULL DEFAULT '0',
-  `repeatSlots` int(4) NOT NULL DEFAULT '0',
+  `scheduleAT` int(4) NOT NULL DEFAULT '0',
+  `scenario` int(3) DEFAULT '0',
+  `actor` int(2) DEFAULT '0',
+  `rescheduleSF` int(4) DEFAULT '0',
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  PRIMARY KEY (`addr`,`scheduleAT`,`scenario`,`actor`,`updated`),
+  PRIMARY KEY (`addr`,`scheduleAT`),
   KEY `time` (`updated`),
   KEY `device` (`addr`,`scheduleAT`),
   KEY `recent_schedule_device` (`addr`,`updated`,`scheduleAT`)
@@ -469,4 +482,4 @@ CREATE TABLE `version` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-05-28 11:15:55
+-- Dump completed on 2020-06-12 17:17:36

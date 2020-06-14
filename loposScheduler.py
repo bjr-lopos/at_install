@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #pip3 install paho-mqtt python-etcd
 #pip3 install mysql-connector-python-rf
 #python3 -m pip install mysql-connector
@@ -7,17 +8,20 @@ import time
 import paho.mqtt.client as mqtt
 import mysql.connector
 import functools
-print = functools.partial(print, flush=True)
+from datetime import datetime
+import localConfig as cfg
 
+
+print = functools.partial(print, flush=True)
 
 #-----------------------------------------------------------
 #Database
 #-----------------------------------------------------------
 mydb = mysql.connector.connect(
-  host="localhost",
-  user="lopos_test",
-  passwd="lopos_test",
-  database="lopos_test"  
+    host=cfg.mysql["host"], 
+    user=cfg.mysql["user"], 
+    passwd=cfg.mysql["passwd"], 
+    database=cfg.mysql["db"]
 )
 #print(mydb)
 mycursor = mydb.cursor()
@@ -41,10 +45,9 @@ def insertTodo(addr, SFcnt, scenario, actor, repeat, last):
 
 def testAnchor(addr): 
     LOPOS_SF_BLOCK_SIZE=8
-    scenarioJustSink=0
     actorCnt=1
     dSql="delete from todo where addr=%(anchor_test_id)s and scenario=%(scenario)s and actor=1"
-    mycursor.execute(dSql, {'anchor_test_id':addr, 'scenario':scenarioJustSink} )
+    mycursor.execute(dSql, {'anchor_test_id':addr, 'scenario':cfg.LOPOS_SCENARIO_System} )
     mydb.commit()
     SFcnt = 80
     for i in range(10):    
@@ -52,12 +55,11 @@ def testAnchor(addr):
             SFcnt +=3 - (SFcnt % LOPOS_SF_BLOCK_SIZE)
         if SFcnt % LOPOS_SF_BLOCK_SIZE > 4:
             SFcnt += (LOPOS_SF_BLOCK_SIZE +3) - (SFcnt % LOPOS_SF_BLOCK_SIZE)
-        insertTodo(addr, SFcnt, scenarioJustSink, actorCnt, 0, 0)
+        insertTodo(addr, SFcnt, cfg.LOPOS_SCENARIO_System, actorCnt, 0, 0)
         SFcnt +=1
 
 def scheduleStats():
     print("Schedule dev reports: ")
-    scenarioStat=7
     LOPOS_SF_BLOCK_SIZE=8
     actorCnt = 0
     SFcnt = 80
@@ -71,7 +73,7 @@ def scheduleStats():
             ON    
                 p.addr = s.addr	
             where 
-                scenario = 7 and ((s.last_update IS NULL) or (TIMESTAMPDIFF(SECOND,s.last_update,now()) > ( p.interval -10) ) )
+                scenario = 12 and ((s.last_update IS NULL) or (TIMESTAMPDIFF(SECOND,s.last_update,now()) > ( p.interval -10) ) )
             order by 2;        
         """ )
         records = mycursor.fetchall()
@@ -80,9 +82,11 @@ def scheduleStats():
             if SFcnt % LOPOS_SF_BLOCK_SIZE == 0:
                 SFcnt +=5
             if actorCnt == 0:
-                insertTodo(0xFFF0, SFcnt, scenarioStat, actorCnt, 0, needStatSchedule[1])
+                insertTodo(0xFFF0, SFcnt + 1, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
+                insertTodo(0xA001, SFcnt + 1, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
+                insertTodo(0xA001, SFcnt, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
                 actorCnt +=1
-            insertTodo(needStatSchedule[0], SFcnt, scenarioStat, actorCnt, 0, needStatSchedule[1])
+            insertTodo(needStatSchedule[0], SFcnt, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
             actorCnt +=1
             if actorCnt > 10:
                 actorCnt = 0
@@ -101,9 +105,13 @@ def scheduleStats():
 #Actions
 #-----------------------------------------------------------
 
+
+
 def planActions():
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S %B %d %Y")
+    print("Schedule iteration (will clean up old todo): @", current_time)
     dSql="delete from todo using todo,sys where TIMESTAMPDIFF(SECOND,todo.updated,now()) > ((sys.SFticks * sys.SFmax)/32768) "
-    print("Schedule iteration (will clean up old todo): ")
     mycursor.execute(dSql)
     mydb.commit()
     testAnchor(0xA001)
@@ -141,5 +149,6 @@ client.loop_forever()
 #main loop
 #-----------------------------------------------------------
 while True:
+    #delete from stat where TIMESTAMPDIFF(MINUTE,updated, now()) > 60;
     planActions()
     time.sleep(5)

@@ -8,15 +8,16 @@ import mysql.connector
 import functools
 print = functools.partial(print, flush=True)
 import argparse
+import localConfig as cfg
 
 #-----------------------------------------------------------
 #Database
 #-----------------------------------------------------------
 mydb = mysql.connector.connect(
-  host="localhost",
-  user="lopos_test",
-  passwd="lopos_test",
-  database="lopos_test"  
+    host=cfg.mysql["host"], 
+    user=cfg.mysql["user"], 
+    passwd=cfg.mysql["passwd"], 
+    database=cfg.mysql["db"]
 )
 #print(mydb)
 mycursor = mydb.cursor()

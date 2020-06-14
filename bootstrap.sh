@@ -1,6 +1,8 @@
 #!/bin/bash
 loposMathBin=/usr/local/bin/loposTDoA2Pos.py
 LoposMathService=/etc/systemd/system/loposmath.service
+loposPlanBin=/usr/local/bin/loposScheduler.py
+LoposPlanService=/etc/systemd/system/loposplan.service
 loposCoreBin=/usr/local/bin/loposcore
 LoposCoreService=/etc/systemd/system/loposcore.service
 LocalData=/tmp/loposdb_data.sql
@@ -71,6 +73,31 @@ fi
 }
 
 
+createPlanService() {
+LoposPlanServiceTmp=/tmp/`basename $LoposPlanService`
+cat << EOT > $LoposPlanServiceTmp
+[Unit]
+Description=loposplan service
+#Requires=mysql.service
+#After=mysql.service
+
+[Service]
+User=lopos
+Group=lopos
+ExecStart=/usr/bin/python3 $loposPlanBin
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=lps
+
+[Install]
+#WantedBy=multi-user.target mysql.service
+WantedBy=multi-user.target
+EOT
+
+sudo cp $LoposPlanServiceTmp $LoposPlanService
+
+}
 
 createMathService() {
 LoposMathServiceTmp=/tmp/`basename $LoposMathService`
@@ -87,7 +114,7 @@ ExecStart=/usr/bin/python3 $loposMathBin
 Restart=always
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=lcs
+SyslogIdentifier=lms
 
 [Install]
 #WantedBy=multi-user.target mysql.service
@@ -202,6 +229,9 @@ else
     echo "Will run: mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'"
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
 
+    sudo service loposplan stop
+    sudo systemctl disable loposplan.service
+
     sudo service loposmath stop
     sudo systemctl disable loposmath.service
 
@@ -209,6 +239,13 @@ else
     sudo systemctl disable loposcore.service
 
 fi
+
+
+
+sudo cp `basename $loposPlanBin` $loposPlanBin
+createPlanService
+sudo systemctl enable loposplan.service
+sudo systemctl start loposplan.service
 
 
 sudo cp `basename $loposMathBin` $loposMathBin

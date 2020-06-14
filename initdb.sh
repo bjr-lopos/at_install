@@ -22,6 +22,8 @@ if [ ! "$PASS" = "nouser" ]; then
 fi
 printf "insert into db (host,Db,User) values(\"localhost\",\"%s\",\"%s\");\n" $DBNAME $USER
 printf "insert into db (host,Db,User) values(\"%%\",\"%s\",\"%s\");\n\n" $DBNAME $USER
+printf "insert into tables_priv values ("localhost", \"%%\", \"%%\", \"todo\", \"root@localhost\", now(), \"delete,update\", \"\" );\n\n" $DBNAME $USER
+printf "insert into tables_priv values ("localhost", \"%%\", \"%%\", \"sys\", \"root@localhost\", now(), \"update\", \"\" );\n\n" $DBNAME $USER
 
 printf "update db set 
 Select_priv = \"Y\", 
@@ -44,6 +46,8 @@ Execute_priv  = \"Y\",
 Create_view_priv = \"Y\", 
 Show_view_priv = \"Y\" 
 where user = \"%s\" AND host=\"%%\";\n\n" $USER
+
+
 
 
 printf "flush privileges;\n"

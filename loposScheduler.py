@@ -73,18 +73,19 @@ def scheduleStats():
             ON    
                 p.addr = s.addr	
             where 
-                scenario = 12 and ((s.last_update IS NULL) or (TIMESTAMPDIFF(SECOND,s.last_update,now()) > ( p.interval -10) ) )
+                scenario = %(scenario)s and ((s.last_update IS NULL) or (TIMESTAMPDIFF(SECOND,s.last_update,now()) > ( p.interval -10) ) )
             order by 2;        
-        """ )
+        """,  {'scenario':cfg.LOPOS_SCENARIO_Stat} )
         records = mycursor.fetchall()
         for needStatSchedule in records:
             #print(locals())
             if SFcnt % LOPOS_SF_BLOCK_SIZE == 0:
                 SFcnt +=5
             if actorCnt == 0:
-                insertTodo(0xFFF0, SFcnt + 1, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
-                insertTodo(0xA001, SFcnt + 1, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
-                insertTodo(0xA001, SFcnt, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
+                #insertTodo(0xFFF0, SFcnt + 1, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
+                #insertTodo(0xA001, SFcnt + 1, cfg.LOPOS_SCENARIO_Fwd, actorCnt, 0, needStatSchedule[1])
+                #insertTodo(0xA001, SFcnt, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
+                insertTodo(0xFFF0, SFcnt,  cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
                 actorCnt +=1
             insertTodo(needStatSchedule[0], SFcnt, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, needStatSchedule[1])
             actorCnt +=1
@@ -114,7 +115,7 @@ def planActions():
     dSql="delete from todo using todo,sys where TIMESTAMPDIFF(SECOND,todo.updated,now()) > ((sys.SFticks * sys.SFmax)/32768) "
     mycursor.execute(dSql)
     mydb.commit()
-    testAnchor(0xA001)
+    #testAnchor(0xA001)
     scheduleStats()
 
 #-----------------------------------------------------------

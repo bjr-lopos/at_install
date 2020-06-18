@@ -60,27 +60,43 @@ def insertTodo(addr, SFcnt, scenario, actor, repeat, last):
 #-----------------------------------------------------------
 
 parser = argparse.ArgumentParser()
-parser.add_argument("type", help="sink/anchor/tag")
+parser.add_argument("type", help="sink/anchor/tag/all")
 parser.add_argument("id", type=int, help="id of the device.")
 parser.add_argument("action", help="reset/dfu")
 args=parser.parse_args()
 addr = 0
+if args.type=='all':
+    if args.action=='reset':
+        updateSysBeaconId(0xFB)
+        time.sleep(16)
+        updateSysBeaconId(0xA5)
+    if args.action=='dfu':
+        updateSysBeaconId(0xFD)
+        time.sleep(32)
+        updateSysBeaconId(0xA5)
 if args.type=='sink':
     if args.action=='reset':
         updateSysBeaconId(0xFA)
-        time.sleep(60)
+        time.sleep(16)
         updateSysBeaconId(0xA5)
+        #insertTodo(0xFFF0, 1, cfg.LOPOS_SCENARIO_System, 17, 0, 0)
     if args.action=='dfu':
-        updateSysBeaconId(0xFC)
-        time.sleep(60)
-        updateSysBeaconId(0xA5)
+        #updateSysBeaconId(0xFC)
+        #time.sleep(32)
+        #updateSysBeaconId(0xA5)
+        insertTodo(0xFFF0, 1, cfg.LOPOS_SCENARIO_System, 16, 0, 0)
 if args.type=='anchor':
     addr = 0xA000 + args.id
+    print(f"Addr is 0x{addr:X}")
+    if args.action=='reset':
+        insertTodo(addr, 1, cfg.LOPOS_SCENARIO_System, 17, 0, 0)
+    if args.action=='dfu':
+        insertTodo(addr, 1, cfg.LOPOS_SCENARIO_System, 16, 0, 0)
 if args.type=='tag':
     addr = 0x1000 + args.id
-print(f"Addr is 0x{addr:X}")
-if args.action=='reset':
-    insertTodo(addr, 1, 0, 17, 0, 0)
-if args.action=='dfu':
-    insertTodo(addr, 1, 0, 16, 0, 0)
+    print(f"Addr is 0x{addr:X}")
+    if args.action=='reset':
+        insertTodo(addr, 1, cfg.LOPOS_SCENARIO_System, 17, 0, 0)
+    if args.action=='dfu':
+        insertTodo(addr, 1, cfg.LOPOS_SCENARIO_System, 16, 0, 0)
 

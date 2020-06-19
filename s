@@ -1,0 +1,1 @@
+sudo mysql -uroot  terec -e "select hex(addr), addr-0xa000 as id, mac, max(updated), min(vbattRatio)*20+2200 as vbat, min(beaconRSSI)-100 as rrsi, min(version) from stat group by addr, mac order by 5;"

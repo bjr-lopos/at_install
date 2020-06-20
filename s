@@ -1,1 +1,26 @@
-sudo mysql -uroot  terec -e "select hex(addr), addr-0xa000 as id, mac, max(updated), min(vbattRatio)*20+2200 as vbat, min(beaconRSSI)-100 as rrsi, min(version) from stat group by addr, mac order by 5;"
+lclDir=`dirname $0`
+source $lclDir/local_cfg
+sql=`cat << EndOfMessage
+select 
+    hex(addr), 
+    case 
+        when addr&0xF000 = 0xA000 then "anchor"
+        when addr&0xFFF0 = 0xFFF0 then "sink"
+    else 
+        "tag"
+    end
+    as type, 
+    addr&0x0FFF as id, 
+    mac, 
+    TIMESTAMPDIFF(SECOND,max(updated),now()) as secSinceLastUpdate, 
+    min(vbattRatio)*20+2200 as vbat, 
+    min(beaconRSSI)-100 as rrsi, 
+    max(version)
+from 
+    stat 
+group by 
+    addr, mac 
+order by 
+    1;
+EndOfMessage`
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"

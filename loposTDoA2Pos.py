@@ -47,8 +47,10 @@ order by 1
 """ )
 records = mycursor.fetchall()
 #numAnchors = mycursor.rowcount
-interDistAnchor = np.zeros( (numAnchors, numAnchors) )
 anchorPosition = np.zeros( (numAnchors, 3) )
+interDistAnchor = np.zeros( (numAnchors, numAnchors) )
+tagPosition = np.zeros( (200, 2) )
+
 for rowA in records:
     Aid=rowA[0]
     Ax=rowA[3]
@@ -62,11 +64,11 @@ for rowA in records:
         Bz=rowB[5]
         interDistAnchor[Aid,Bid]=((Ax-Bx)**2+(Ay-By)**2+(Az-Bz)**2)**(.5)
 
-print("Selected the most recent anchor positions from database:")
-print(anchorPosition)
+#print("Selected the most recent anchor positions from database:")
+#print(anchorPosition)
 
-print("Calculated the anchor interdistances based on most recent positions from database:")
-print(interDistAnchor)
+#print("Calculated the anchor interdistances based on most recent positions from database:")
+#print(interDistAnchor)
 
 mqtt_broker = '127.0.0.1'
 client = mqtt.Client() #create new instance
@@ -103,7 +105,7 @@ def calculateAndPlotPosition(jsondata):
         #print("will look up ", anchorA, anchorB, anchorSync)
         ddoaAdj= ddoa + (interDistAnchor[anchorA,anchorSync] - interDistAnchor[anchorB,anchorSync])
         #ddoaAdj= ddoaAdj/2.0
-        print("adjusted  A:", anchorA, " B: ", anchorB, " S: ", anchorSync, " DDoA: ", ddoaAdj, " DAS: ", interDistAnchor[anchorA,anchorSync], " DBS: ", interDistAnchor[anchorB,anchorSync])
+        #print("adjusted  A:", anchorA, " B: ", anchorB, " S: ", anchorSync, " DDoA: ", ddoaAdj, " DAS: ", interDistAnchor[anchorA,anchorSync], " DBS: ", interDistAnchor[anchorB,anchorSync])
         AnchorsAx.append(anchorPosition[anchorA,0])
         AnchorsAy.append(anchorPosition[anchorA,1])
         AnchorsAz.append(anchorPosition[anchorA,2])
@@ -113,17 +115,22 @@ def calculateAndPlotPosition(jsondata):
         DDoAValues.append(ddoaAdj)
         numHyperbola = numHyperbola + 1
     startGuess = (anchorPosition[anchorSync,0], anchorPosition[anchorSync,1])
+    if ( (DEVid & 0xF000) == 0x1000 ):
+        tagID = DEVid & 0x0FFF
+        #print ("tagID:", tagID)
+        if ( (tagPosition[tagID,0] != 0) or (tagPosition[tagID,1] != 0) ):
+            startGuess = (tagPosition[tagID,0], tagPosition[tagID,1] )
     Xmin = min(min(AnchorsAx),min(AnchorsBx))
     Ymin = min(min(AnchorsAy),min(AnchorsBy))
     Xmax = max(max(AnchorsAx),max(AnchorsBx))
     Ymax = max(max(AnchorsAy),max(AnchorsBy))
     Xrange=Xmax-Xmin
     Yrange=Ymax-Ymin
-    Xmin=Xmin-Xrange*0.1
-    Ymin=Ymin-Yrange*0.1
-    Xmax=Xmax+Xrange*0.1
-    Ymax=Ymax+Yrange*0.1
-    print (Xmin, Ymin, Xmax, Ymax)
+    Xmin=Xmin-Xrange*1.1
+    Ymin=Ymin-Yrange*1.1
+    Xmax=Xmax+Xrange*1.1
+    Ymax=Ymax+Yrange*1.1
+    #print (Xmin, Ymin, Xmax, Ymax)
     #to be defined
     bnds=((Xmin, Ymin), (Xmax, Ymax))
     t1=int(round(time.time() * 1000000))
@@ -138,16 +145,19 @@ def calculateAndPlotPosition(jsondata):
     jsonObj = {
         "asn":ASNid,
         "dev":DEVid,
-        "x":result[0],
-        "y":result[1],
+        "x":round(result[0], 1),
+        "y":round(result[1], 1),
         "z":tagz,
         "t":t2-t1,
         "nH":numHyperbola
     }
-    print(jsonObj)
     sql="insert into position (addr, asn, x, y, z, numHyperbola, numPyTime) values (%s,%s,%s,%s,%s,%s,%s)"
     val=( DEVid, ASNid, int(round(result[0])), int(round(result[1])), int(round(tagz)), numHyperbola, t2-t1)
-    print(sql, val)
+    if ( (DEVid & 0xF000) == 0x1000 ):
+        tagID = DEVid & 0x0FFF
+        tagPosition[tagID] = [result[0], result[1]]
+    print(jsonObj)
+    #print(sql, val)
     try:
         mycursor.execute(sql, val)
         mydb.commit()
@@ -160,7 +170,7 @@ def calculateAndPlotPosition(jsondata):
         print ("Error message:", e.msg)       # error message
         print ("Error:", e)                   # errno, sqlstate, msg values
         print ("Error:", s)                   # errno, sqlstate, msg values
-    print(mycursor.rowcount, "record inserted.")    
+    #print(mycursor.rowcount, "record inserted.")    
 
 def on_connect(client, userdata, message,rc):
     print("Connected to mqtt broker")
@@ -175,7 +185,7 @@ def on_message(client, userdata, message):
     if(message.topic == "loposcore/ddoa"): 
         #payloadJson = json.loads(message.payload.decode(r.info().get_param('charset') or 'utf-8'))    
         payloadJson = json.loads(payload)    
-        print(payloadJson)
+        #print(payloadJson)
         calculateAndPlotPosition(payloadJson)
 
 

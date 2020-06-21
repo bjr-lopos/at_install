@@ -10,7 +10,12 @@ select
         "tag"
     end
     as type, 
-    addr&0x0FFF as id, 
+    case 
+        when addr&0xFFF0 = 0xFFF0 then addr&0x000F
+    else 
+        addr&0x0FFF
+    end
+    as id, 
     mac, 
     TIMESTAMPDIFF(SECOND,max(updated),now()) as secSinceLastUpdate, 
     min(vbattRatio)*20+2200 as vbat, 

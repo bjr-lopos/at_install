@@ -1,0 +1,7 @@
+ROOTUSER=-uroot
+ROOTPASS=-pLoPoS
+USERLOGIN=lopos_test
+#USERPASS=nouser
+USERPASS=lopos_test
+TARGET_DB=lopos_test
+

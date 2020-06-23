@@ -13,7 +13,7 @@ if [ ! -z "$3" ]; then
     PASS=$3
 fi
 
-printf "uninstall plugin validate_password;"
+#printf "uninstall plugin validate_password;\n"
 printf "create database IF NOT EXISTS %s;\n" $DBNAME
 printf "use mysql;\n"
 if [ ! "$PASS" = "nouser" ]; then  
@@ -22,8 +22,8 @@ if [ ! "$PASS" = "nouser" ]; then
 fi
 printf "insert into db (host,Db,User) values(\"localhost\",\"%s\",\"%s\");\n" $DBNAME $USER
 printf "insert into db (host,Db,User) values(\"%%\",\"%s\",\"%s\");\n\n" $DBNAME $USER
-printf "insert into tables_priv values ("localhost", \"%%\", \"%%\", \"todo\", \"root@localhost\", now(), \"delete,update\", \"\" );\n\n" $DBNAME $USER
-printf "insert into tables_priv values ("localhost", \"%%\", \"%%\", \"sys\", \"root@localhost\", now(), \"update\", \"\" );\n\n" $DBNAME $USER
+printf "insert into tables_priv values (\"localhost\", \"%s\", \"%s\", \"todo\", \"root@localhost\", now(), \"delete,update\", \"\" );\n\n" $DBNAME $USER
+printf "insert into tables_priv values (\"localhost\", \"%s\", \"%s\", \"sys\", \"root@localhost\", now(), \"update\", \"\" );\n\n" $DBNAME $USER
 
 printf "update db set 
 Select_priv = \"Y\", 

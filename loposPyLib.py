@@ -2,7 +2,9 @@
 #pip3 install mysql-connector-python-rf
 #python3 -m pip install mysql-connector
 
+import sys
 import time
+import numpy as np
 import mysql.connector
 import functools
 print = functools.partial(print, flush=True)
@@ -12,9 +14,12 @@ import localConfig as cfg
 #Database
 #-----------------------------------------------------------
 
-LOPOS_SF_BLOCK_SIZE=8
 mydb = None
 mycursor = None
+positionAnchor = {}
+positionCoreAnchor = {}
+positionTag = {}
+discoveredTag = {} 
 
 def initDB():
     global mydb
@@ -28,45 +33,201 @@ def initDB():
     #print(mydb)
     mycursor = mydb.cursor()
 
+
+def _wrappedSql(sql, param, expectResults):
+    try:
+        mycursor.execute(sql, param)
+        if expectResults:
+            records = mycursor.fetchall()
+            return records
+        else:
+            mydb.commit()
+    except Exception as ex:
+        print(ex)        
+    except mysql.connector.Error as err:
+        s = str(e)
+        print ("Error code:", e.errno)        # error number
+        print ("SQLSTATE value:", e.sqlstate) # SQLSTATE value
+        print ("Error message:", e.msg)       # error message
+        print ("Error:", e)                   # errno, sqlstate, msg values
+        print ("Error:", s)                   # errno, sqlstate, msg values
+
+def wrappedSql(sql, param):
+    return _wrappedSql(sql, param, 1)
+
+def wrappedESql(sql, param):
+    _wrappedSql(sql, param, 0)
+
 def cleanupSFid(scheduleAT):
-    dSql="delete from todo where scheduleAT=%(scheduleAT)s"
-    mycursor.execute(dSql, {'scheduleAT':scheduleAT} )
-    mydb.commit()
+    sql="delete from todo where scheduleAT=%(scheduleAT)s"
+    wrappedESql(sql, {'scheduleAT':scheduleAT} )
 
 def cleanupScenario(scenario):
-    dSql="delete from todo where scenario=%(scenario)s"
-    mycursor.execute(dSql, {'scenario':scenario} )
-    mydb.commit()
+    sql="delete from todo where scenario=%(scenario)s"
+    wrappedESql(sql, {'scenario':scenario} )
 
 def cleanupScenarioActor4dev(scenario, actor, addr):
-    dSql="delete from todo where addr=%(addr)s and scenario=%(scenario)s and actor=%(actor)s"
-    mycursor.execute(dSql, {'addr':addr, 'scenario':scenario, 'actor':actor} )
-    mydb.commit()
+    sql="delete from todo where addr=%(addr)s and scenario=%(scenario)s and actor=%(actor)s"
+    wrappedESql(sql, {'addr':addr, 'scenario':scenario, 'actor':actor} )
 
-def keepOutRepeatingAndfixedSF(SFid):
-    global LOPOS_SF_BLOCK_SIZE
-    if SFid < 85:
-        SFid = 85
-    if SFid >250:
-        SFid = 85
-    if SFid % LOPOS_SF_BLOCK_SIZE >= 2:
-        SFid += LOPOS_SF_BLOCK_SIZE - (SFid % LOPOS_SF_BLOCK_SIZE)
-    return SFid        
 
-def claimRepeatingAndfixedSF(SFid):
-    global LOPOS_SF_BLOCK_SIZE
-    if SFid < 85:
-        SFid = 85
-    if SFid >250:
-        SFid = 85
-    if SFid % LOPOS_SF_BLOCK_SIZE <= 2:
-        SFid += 2 - (SFid % LOPOS_SF_BLOCK_SIZE)
-    if SFid % LOPOS_SF_BLOCK_SIZE == LOPOS_SF_BLOCK_SIZE -1:
-        SFid += 3
-    return SFid        
+def getNumAnchors():
+    sql="""
+        SELECT max(id)+%(overdimension)s as maxAnchor
+        FROM anchor as a
+    """
+    records = wrappedSql(sql, {'overdimension':1} )
+    for row in records:
+        numAnchors = row[0]
+        print("Overdimensioned number of anchors is: ", numAnchors)
+        return numAnchors
+
+def getPositionAnchors():
+    global positionAnchor
+    #positionAnchor.clear()
+    if len(positionAnchor) > 0:
+        return
+    sql="""
+        SELECT a.id as id, a.addr as addr, hex(a.addr) as addrX, p.x as x, p.y as y, p.z as z
+        FROM position as p, anchor as a, (select addr, max(updated) as updated from position group by addr) as recent 
+        where p.addr=recent.addr and recent.updated=p.updated and p.addr=a.addr 
+        order by 1 
+    """
+    records = wrappedSql(sql, {})
+    for anchor in records:
+        id=anchor[0]
+        x=anchor[3]
+        y=anchor[4]
+        z=anchor[5]
+        positionAnchor[id] = [x, y, z]
+
+def getPositionCoreAnchors():
+    global positionCoreAnchor
+    if len(positionCoreAnchor) > 0:
+        return
+    sql="""
+        select anchor.id, x, y, z, anchor.addr from
+            position,
+            (SELECT core FROM cell group by core having count(*) <= 8) as coreA,
+            anchor
+        where 
+            anchor.id=coreA.core 
+            and 
+            position.addr=anchor.addr
+            and
+            numHyperbola = 0;
+    """
+    records = wrappedSql(sql, {})
+    for core in records:
+        id=core[0]
+        x=core[1]
+        y=core[2]
+        z=core[3]
+        addr=core[4]
+        positionCoreAnchor[id]=[x, y, z,addr]
+
+def localizeDiscoverTags(age):
+    global discoveredTag
+    discoveredTag.clear()
+    sql="""
+        select 
+            devTx, 
+            sum(rxPow * weight) /sum(weight) as rxPow, 
+            sum(x * weight) /sum(weight) as x, 
+            sum(y * weight) /sum(weight) as y, 
+            sum(z * weight) /sum(weight) as z,
+            count(*),
+            min(devRx),
+            max(devRx),
+            min(rxPow)
+        from 
+            (SELECT 
+                u.devTx as devTx, u.rxPow as rxPow, x, y, z, u.devRx as devRx, 
+                case 
+                    when u.rxPow > -70 then 10
+                    when u.rxPow > -80 then 7
+                    when u.rxPow > -90 then 3
+                    else 1
+                end as weight
+            FROM 
+                uwbstat as u, position as p
+            where 
+                TIMESTAMPDIFF(SECOND,u.updated,now()) < %(age)s
+                and
+                u.devRx = p.addr
+                and 
+                p.asn = 0
+            )
+            as wu
+        group by devTx
+    """
+    records = wrappedSql(sql, {'age':age})
+    if records is None:
+        return
+    for disc in records:
+        addr=disc[0]
+        x=disc[2]
+        y=disc[3]
+        z=disc[4]
+        discoveredTag[addr] = [x,y,z]
+    #print("Discovered:", discoveredTag)
+
+def getPositionTags():
+    global positionTag
+    positionTag.clear()
+    sql="""
+        select 
+            p.addr, x, y, z, TIMESTAMPDIFF(SECOND,lu.updated,now())
+        from
+            (   select 
+                    addr, max(updated) as updated
+                from position
+                where addr & 0xF000 = 0x1000
+                group by addr
+            ) as lu,
+            position as p
+        where 
+            lu.updated = p.updated
+    """
+    records = wrappedSql(sql, {})
+    if records is None:
+        return
+    for pos in records:
+        addr=pos[0]
+        x=pos[1]
+        y=pos[2]
+        z=pos[3]
+        age=pos[4]
+        positionTag[addr] = [x,y,z,age]
+
+def findCloseCore(dev, maxage):
+    global positionCoreAnchor
+    global positionTag
+    global discoveredTag
+    lDist = 10000
+    coreIdx = None
+    pos =  positionTag.get(dev)
+    if (pos is None) or (pos[3]>=maxage):
+        pos =  discoveredTag.get(dev)
+        if (pos is None):
+            return None
+    #print("pos is: ", pos)
+    dx=float(pos[0])
+    dy=float(pos[1])
+    dz=float(pos[2])
+    for core in positionCoreAnchor.keys():
+        cx=float(positionCoreAnchor[core][0])
+        cy=float(positionCoreAnchor[core][1])
+        cz=float(positionCoreAnchor[core][2])
+        cDist = ((dx-cx)**2+(dy-cy)**2+(dz-cy)**2)**(.5)
+        if cDist < lDist: 
+            coreIdx = core
+    #print("Dist is: ", str(lDist))
+    return coreIdx
+
 
 def insertTodo(addr, SFcnt, scenario, actor, repeat, last):
-    iSql="""
+    sql="""
         insert into todo 
             (addr, scheduleAT, scenario, actor, rescheduleSF)
         values (%s,%s,%s,%s,%s)
@@ -76,84 +237,79 @@ def insertTodo(addr, SFcnt, scenario, actor, repeat, last):
             actor=%s,
             rescheduleSF=%s
     """
-    try:
-        print("S @:", SFcnt, "s:", scenario, "a:", actor, "d:", hex(addr), "last @", last)
-        mycursor.execute(iSql, (addr, SFcnt, scenario, actor, repeat, scenario, actor, repeat))
-        mydb.commit()
-    except Exception as ex:
-        print(ex)        
-    except mysql.connector.Error as err:
-        s = str(e)
-        print ("Error code:", e.errno)        # error number
-        print ("SQLSTATE value:", e.sqlstate) # SQLSTATE value
-        print ("Error message:", e.msg)       # error message
-        print ("Error:", e)                   # errno, sqlstate, msg values
-        print ("Error:", s)                   # errno, sqlstate, msg values
+    print("S @:", SFcnt, "s:", '{:>2}'.format(scenario), "a:", '{:>2}'.format(actor), "d:", hex(addr), "last @", last)
+    wrappedESql(sql, (addr, SFcnt, scenario, actor, repeat, scenario, actor, repeat))
 
 def updateSysBeaconId(beaconID):
-    uSql="update sys set beaconID=%(beaconID)s"
-    try:
-        print("Will update beaconID", hex(beaconID))
-        mycursor.execute(uSql, {'beaconID':beaconID} )
-        mydb.commit()
-    except Exception as ex:
-        print(ex)        
-    except mysql.connector.Error as err:
-        s = str(e)
-        print ("Error code:", e.errno)        # error number
-        print ("SQLSTATE value:", e.sqlstate) # SQLSTATE value
-        print ("Error message:", e.msg)       # error message
-        print ("Error:", e)                   # errno, sqlstate, msg values
-        print ("Error:", s)                   # errno, sqlstate, msg values
-
+    sql="update sys set beaconID=%(beaconID)s"
+    print("Will update beaconID", hex(beaconID))
+    wrappedESql(sql, {'beaconID':beaconID} )
 
 def deleteOldSchedules(numSF):
-    dSql="delete from todo using todo,sys where TIMESTAMPDIFF(SECOND,todo.updated,now()) > %(numSF)s*((sys.SFticks * sys.SFmax)/32768) "
-    mycursor.execute(dSql, {'numSF':numSF})
-    mydb.commit()
+    sql="delete from todo using todo,sys where TIMESTAMPDIFF(SECOND,todo.updated,now()) > %(numSF)s*((sys.SFticks * sys.SFmax)/32768) "
+    wrappedESql(sql, {'numSF':numSF})
 
-def checkForSchedules(table, scenario, maxActors, _reqScheduleCB = None):
-    ssSql = """
-        SELECT p.addr, CASE WHEN s.last_update IS NULL THEN 0 else DATE_ADD(s.last_update, INTERVAL p.interval SECOND) end as schedule
+def requestAnchorPerCell(core, max, _reqAnchorCellCB = None):
+    sql = """
+        SELECT 
+            anchor.addr
         FROM 
+            cell,
+            anchor
+        where 
+            cell.core = %(core)s 
+            and
+            anchor.id = cell.edge
+        order by 1
+        limit %(max)s         
+    """
+    records = wrappedSql(sql, {'core':core, 'max':max} )
+    if (records is None) :
+        print("No edges configured for core:", str(core))
+        return
+    for edge in records:
+        if _reqAnchorCellCB:
+            #print ("will call cb")
+            _reqAnchorCellCB(core, edge[0])
+
+
+#every planned scenario has a result table, we will search for devices which have an overdue scenario
+def checkForSchedules(table, scenario, _reqScheduleCB = None):
+    sql = """
+        SELECT 
+            p.addr, 
+            CASE 
+                WHEN ref.last_update IS NULL THEN 0 
+                else DATE_ADD(ref.last_update, INTERVAL p.interval SECOND) 
+            end as schedule,
+            CASE 
+                WHEN ref.last_update IS NULL THEN 50000 
+                else TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval
+            end as diff
+        FROM 
+            sys,
             plan as p
         LEFT JOIN 
-            (select addr, max(updated) as last_update from """ + table + """ group by addr) as s
+            (select addr, max(updated) as last_update from """ + table + """ group by addr) as ref
         ON    
-            p.addr = s.addr	
+            p.addr = ref.addr	
         where 
-            scenario = %(scenario)s and ((s.last_update IS NULL) or (TIMESTAMPDIFF(SECOND,s.last_update,now()) > ( p.interval -10) ) )
+            scenario = %(scenario)s 
+            and (
+                    (ref.last_update IS NULL) 
+                    or 
+                    (TIMESTAMPDIFF(SECOND,ref.last_update,now()) > ( p.interval - (sys.SFmax*sys.SFticks/32768)) ) 
+            )
         order by 2;        
     """
-    try:
-        mycursor.execute(ssSql, {'table':table, 'scenario':scenario} )
-        records = mycursor.fetchall()
-        actorCnt = 0
-        SFcnt = geNextSFidxRef()
-        for needSchedule in records:
-            addr = needSchedule[0]
-            last = needSchedule[1]
-            if actorCnt == 0:
-                insertTodo(0xFFF0, SFcnt,  cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, last)
-                actorCnt +=1
-            insertTodo(addr, SFcnt, cfg.LOPOS_SCENARIO_Stat, actorCnt, 0, last)
-            if _reqScheduleCB:
-                print ("will call cb")
-                _reqScheduleCB(addr, last)
-            actorCnt +=1
-            if actorCnt > maxActors:
-                actorCnt = 0
-                SFcnt = geNextSFidxRef()
-
-    except Exception as ex:
-        print(ex)        
-    except mysql.connector.Error as err:
-        s = str(e)
-        print ("Error code:", e.errno)        # error number
-        print ("SQLSTATE value:", e.sqlstate) # SQLSTATE value
-        print ("Error message:", e.msg)       # error message
-        print ("Error:", e)                   # errno, sqlstate, msg values
-        print ("Error:", s)                   # errno, sqlstate, msg values
+    records = wrappedSql(sql, {'scenario':scenario} )
+    for needSchedule in records:
+        addr = needSchedule[0]
+        last = needSchedule[1]
+        overdue = needSchedule[2]
+        if _reqScheduleCB:
+            #print ("will call cb")
+            _reqScheduleCB(addr, last, overdue)
 
 #-----------------------------------------------------------
 #SFidxRef and SFrepIdxRef
@@ -161,6 +317,30 @@ def checkForSchedules(table, scenario, maxActors, _reqScheduleCB = None):
 
 SFidxRef=0
 SFrepIdxRef=0
+
+def keepOutRepeatingAndfixedSF(SFid):
+    if SFid <= cfg.LOPOS_LAST_FIXED_SF:
+        SFid = cfg.LOPOS_LAST_FIXED_SF + 1
+    if SFid >cfg.LOPOS_LAST_USABLE_SF:
+        loposPy.deleteOldSchedules(0)
+        print("ERROR: Hyperframe !")
+        sys.exit()
+    if SFid % cfg.LOPOS_SF_BLOCK_SIZE >= 2:
+        SFid += cfg.LOPOS_SF_BLOCK_SIZE - (SFid % cfg.LOPOS_SF_BLOCK_SIZE)
+    return SFid        
+
+def claimRepeatingAndfixedSF(SFid):
+    if SFid <= cfg.LOPOS_LAST_FIXED_SF:
+        SFid = cfg.LOPOS_LAST_FIXED_SF + 1
+    if SFid >cfg.LOPOS_LAST_USABLE_SF:
+        loposPy.deleteOldSchedules(0)
+        print("ERROR: Hyperframe overstressed!")
+        sys.exit()
+    if SFid % cfg.LOPOS_SF_BLOCK_SIZE <= 2:
+        SFid += 2 - (SFid % cfg.LOPOS_SF_BLOCK_SIZE)
+    if SFid % cfg.LOPOS_SF_BLOCK_SIZE == cfg.LOPOS_SF_BLOCK_SIZE -1:
+        SFid += 3
+    return SFid        
 
 def initSFidxRef():
     global SFidxRef

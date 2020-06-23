@@ -237,6 +237,7 @@ CREATE TABLE `motion` (
   `z` int(11) DEFAULT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`addr`,`updated`),
+  KEY `speedup` (`updated` desc,`addr`),
   CONSTRAINT `fk_motion_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -273,6 +274,7 @@ CREATE TABLE `position` (
   `numHyperbola` int(3) DEFAULT NULL,
   `numPyTime` int(5) DEFAULT NULL,
   PRIMARY KEY (`addr`,`updated`),
+  KEY `index2` (`updated` desc,`addr`),
   CONSTRAINT `fk_position_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -300,7 +302,7 @@ CREATE TABLE `stat` (
   `uwbRxRatio` int(3) NOT NULL DEFAULT '0',
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`addr`,`updated`),
-  KEY `index2` (`addr`,`asn`),
+  KEY `speedup` (`updated` desc,`addr`),
   CONSTRAINT `fk_stat_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -357,6 +359,7 @@ CREATE TABLE `tdoa` (
   PRIMARY KEY (`edge`,`sync`,`tag`,`asn`),
   KEY `fk_tdoa_2_idx` (`sync`),
   KEY `fk_tdoa_3_idx` (`tag`),
+  KEY `speedup` (`updated` desc,`tag`),
   CONSTRAINT `fk_tdoa_1` FOREIGN KEY (`edge`) REFERENCES `anchor` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_tdoa_2` FOREIGN KEY (`sync`) REFERENCES `anchor` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_tdoa_3` FOREIGN KEY (`tag`) REFERENCES `tag` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
@@ -432,8 +435,9 @@ CREATE TABLE `uwbstat` (
   `fpPow` float(6,3) DEFAULT NULL,
   `rxPow` float(6,3) DEFAULT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  PRIMARY KEY (`devTx`,`devRx`),
+  PRIMARY KEY (`devTx`,`devRx`,`asn`),
   KEY `fk_uwbstat_2_idx` (`devRx`),
+  KEY `speedup` (`updated` desc,`devTx`),
   CONSTRAINT `fk_uwbstat_1` FOREIGN KEY (`devTx`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_uwbstat_2` FOREIGN KEY (`devRx`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -482,4 +486,4 @@ CREATE TABLE `version` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-06-12 17:17:36
+-- Dump completed on 2020-06-23 15:38:56

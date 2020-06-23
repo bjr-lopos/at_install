@@ -192,6 +192,15 @@ if [ ! -e $LoposCoreService ]; then
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
     ldconfig /usr/local/lib
 else 
+    sudo service loposplan stop
+    sudo systemctl disable loposplan.service
+
+    sudo service loposmath stop
+    sudo systemctl disable loposmath.service
+
+    sudo service loposcore stop
+    sudo systemctl disable loposcore.service
+
     echo "Will run: sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo' "
     sudo mysql $ROOTUSER $ROOTPASS $TARGET_DB -e 'DROP VIEW IF EXISTS timeInfo'
     echo "will run: sudo mysqldump -u$USERLOGIN -p$USERPASS --skip-triggers --compact --no-create-info --hex-blob $TARGET_DB >> $LocalData"
@@ -229,14 +238,6 @@ else
     echo "Will run: mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'"
     mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e 'insert into sys values (FROM_UNIXTIME(1585692000), 165, 60, 4915);'    
 
-    sudo service loposplan stop
-    sudo systemctl disable loposplan.service
-
-    sudo service loposmath stop
-    sudo systemctl disable loposmath.service
-
-    sudo service loposcore stop
-    sudo systemctl disable loposcore.service
 
 fi
 

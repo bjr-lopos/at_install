@@ -55,9 +55,11 @@ def testAccel(dev):
 def testAnchor(addr): 
     print("Schedule testAnchor: ")
     loposPy.cleanupScenarioActor4dev(cfg.LOPOS_SCENARIO_System, 2, addr)
-    for i in range(10):    
-        SFcnt = loposPy.geNextSFidxRef()
-        loposPy.insertTodo(addr, SFcnt, cfg.LOPOS_SCENARIO_System, 2, 0, 0)
+    numSlots = 3
+    for i in range(numSlots):    
+        #SFcnt = loposPy.geNextSFidxRef()
+        #loposPy.insertTodo(addr, i*(256/numSlots)+6, cfg.LOPOS_SCENARIO_System, 2, 0, 0)
+        loposPy.insertTodo(addr, i*80+6, cfg.LOPOS_SCENARIO_System, 2, 0, 0)
 
 def testDiscover(anchor, dev): 
     print("Schedule discover: ")

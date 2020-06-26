@@ -1,4 +1,5 @@
 #!/bin/bash
+loposPyLib=/usr/local/bin/loposPyLib.py
 loposMathBin=/usr/local/bin/loposTDoA2Pos.py
 LoposMathService=/etc/systemd/system/loposmath.service
 loposPlanBin=/usr/local/bin/loposScheduler.py
@@ -242,7 +243,7 @@ else
 fi
 
 
-
+sudo cp `basename $loposPyLib` $loposPyLib
 sudo cp `basename $loposPlanBin` $loposPlanBin
 createPlanService
 sudo systemctl enable loposplan.service

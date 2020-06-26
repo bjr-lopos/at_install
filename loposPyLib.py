@@ -126,7 +126,10 @@ def getPositionCoreAnchors():
         addr=core[4]
         positionCoreAnchor[id]=[x, y, z,addr]
 
-def localizeDiscoverTags(age):
+def getNumCorAnchors():
+    return len(positionCoreAnchor)
+
+def localizeDiscoverTags(age, minRxPow):
     global discoveredTag
     discoveredTag.clear()
     sql="""
@@ -160,8 +163,9 @@ def localizeDiscoverTags(age):
             )
             as wu
         group by devTx
+        having sum(rxPow * weight) /sum(weight)  > %(minRxPow)s
     """
-    records = wrappedSql(sql, {'age':age})
+    records = wrappedSql(sql, {'age':age, 'minRxPow':minRxPow})
     if records is None:
         return
     for disc in records:

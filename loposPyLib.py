@@ -226,6 +226,7 @@ def findCloseCore(dev, maxage):
         cDist = ((dx-cx)**2+(dy-cy)**2+(dz-cy)**2)**(.5)
         if cDist < lDist: 
             coreIdx = core
+            lDist = cDist
     #print("Dist is: ", str(lDist))
     return coreIdx
 

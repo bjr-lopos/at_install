@@ -121,7 +121,7 @@ def scheduleTdoaCB(addr, last, overdue):
         if disc_ActorCnt == 0:
             loposPy.insertTodo(0xFFF0, disc_SFcnt,  cfg.LOPOS_SCENARIO_Discover, disc_ActorCnt, 0, last)
             disc_ActorCnt +=1
-            loposPy.requestAnchorPerCell(40, cfg.LOPOS_SCENARIO_Discover_TAG_OFS - 1, discReqAnchorCellCB)
+            loposPy.requestAnchorPerCell(0, cfg.LOPOS_SCENARIO_Discover_TAG_OFS - 1, discReqAnchorCellCB)
             if (disc_ActorCnt < cfg.LOPOS_SCENARIO_Discover_TAG_OFS):
                 disc_ActorCnt = cfg.LOPOS_SCENARIO_Discover_TAG_OFS
         loposPy.insertTodo(addr, disc_SFcnt, cfg.LOPOS_SCENARIO_Discover, disc_ActorCnt, 0, last)

@@ -1,4 +1,10 @@
 lclDir=`dirname $0`
+delay=$((15*60))
+if [ ! -z "$1" ]; then
+	delay="$1"
+fi
+echo will use delay $delay
+sleep 1
 source $lclDir/local_cfg
 sql=`cat << EndOfMessage
 select 
@@ -19,10 +25,20 @@ select
     mac, 
     TIMESTAMPDIFF(SECOND,max(updated),now()) as secSinceLastUpdate, 
     min(vbattRatio)*20+2200 as vbat, 
-    min(beaconRSSI)-100 as rrsi, 
-    max(version)
+    round(avg(beaconRSSI))-100 as rrsiAvg, 
+    min(beaconRSSI)-100 as rrsiMin, 
+    max(beaconRSSI)-100 as rrsiMax, 
+    max(version),
+    min(drift) as minDrift,
+    round(avg(drift)) as avgDrift,
+    max(drift) as maxDrift,
+    min(beaconRatio) as minBR,
+    round(avg(beaconRatio)) as avgBR,
+    max(beaconRatio) as maxBR
 from 
     stat 
+where
+    TIMESTAMPDIFF(SECOND,updated,now()) < $delay
 group by 
     addr, mac 
 order by 

@@ -40,8 +40,8 @@ def _wrappedSql(sql, param, expectResults):
         if expectResults:
             records = mycursor.fetchall()
             return records
-        else:
-            mydb.commit()
+        #else:
+            #mydb.commit()
     except Exception as ex:
         print(ex)        
     except mysql.connector.Error as err:
@@ -57,6 +57,10 @@ def wrappedSql(sql, param):
 
 def wrappedESql(sql, param):
     _wrappedSql(sql, param, 0)
+
+def wrappedESqlCommit():
+    mydb.commit()
+
 
 def cleanupSFid(scheduleAT):
     sql="delete from todo where scheduleAT=%(scheduleAT)s"
@@ -324,7 +328,8 @@ SFidxRef=0
 SFrepIdxRef=0
 
 def keepOutRepeatingAndfixedSF(SFid):
-    reducedSFoffset = {0:2, 1:1, 2:0, 3:3, 4:2, 5:1, 6:0, 7:3}  
+    ##reducedSFoffset = {0:2, 1:1, 2:0, 3:3, 4:2, 5:1, 6:0, 7:3}  
+    reducedSFoffset = {0:4, 1:3, 2:2, 3:1, 4:0, 5:7, 6:6, 7:5}  
     if SFid <= cfg.LOPOS_LAST_FIXED_SF:
         SFid = cfg.LOPOS_LAST_FIXED_SF + 1
     if SFid >cfg.LOPOS_LAST_USABLE_SF:

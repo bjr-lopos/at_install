@@ -114,22 +114,38 @@ def calculateAndPlotPosition(jsondata):
         AnchorsBz.append(anchorPosition[anchorB,2])
         DDoAValues.append(ddoaAdj)
         numHyperbola = numHyperbola + 1
+
     startGuess = (anchorPosition[anchorSync,0], anchorPosition[anchorSync,1])
     if ( (DEVid & 0xF000) == 0x1000 ):
         tagID = DEVid & 0x0FFF
         #print ("tagID:", tagID)
         if ( (tagPosition[tagID,0] != 0) or (tagPosition[tagID,1] != 0) ):
             startGuess = (tagPosition[tagID,0], tagPosition[tagID,1] )
+
     Xmin = min(min(AnchorsAx),min(AnchorsBx))
     Ymin = min(min(AnchorsAy),min(AnchorsBy))
     Xmax = max(max(AnchorsAx),max(AnchorsBx))
     Ymax = max(max(AnchorsAy),max(AnchorsBy))
-    Xrange=Xmax-Xmin
-    Yrange=Ymax-Ymin
-    Xmin=Xmin-Xrange*1.1
-    Ymin=Ymin-Yrange*1.1
-    Xmax=Xmax+Xrange*1.1
-    Ymax=Ymax+Yrange*1.1
+
+    if hasattr(cfg, 'TDOA2POS_OFFSET_X'):
+        Xmin=Xmin - TDOA2POS_OFFSET_X
+        Xmax=Xmax + TDOA2POS_OFFSET_X
+
+    if hasattr(cfg, 'TDOA2POS_OFFSET_Y'):
+        Ymin=Ymin - TDOA2POS_OFFSET_Y
+        Ymax=Ymax + TDOA2POS_OFFSET_Y
+
+
+    if hasattr(cfg, 'TDOA2POS_FACTOR_X'):
+        Xrange=Xmax-Xmin
+        Xmin=Xmin - (Xrange*cfg.TDOA2POS_FACTOR_X)
+        Xmax=Xmax + (Xrange*cfg.TDOA2POS_FACTOR_X)
+
+    if hasattr(cfg, 'TDOA2POS_FACTOR_Y'):
+        Yrange=Ymax-Ymin
+        Ymin=Ymin - (Yrange * cfg.TDOA2POS_FACTOR_Y)
+        Ymax=Ymax + (Yrange * cfg.TDOA2POS_FACTOR_Y)
+
     #print (Xmin, Ymin, Xmax, Ymax)
     #to be defined
     bnds=((Xmin, Ymin), (Xmax, Ymax))

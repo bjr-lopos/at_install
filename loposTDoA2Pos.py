@@ -121,31 +121,24 @@ def calculateAndPlotPosition(jsondata):
         #print ("tagID:", tagID)
         if ( (tagPosition[tagID,0] != 0) or (tagPosition[tagID,1] != 0) ):
             startGuess = (tagPosition[tagID,0], tagPosition[tagID,1] )
-
     Xmin = min(min(AnchorsAx),min(AnchorsBx))
     Ymin = min(min(AnchorsAy),min(AnchorsBy))
     Xmax = max(max(AnchorsAx),max(AnchorsBx))
     Ymax = max(max(AnchorsAy),max(AnchorsBy))
-
     if hasattr(cfg, 'TDOA2POS_OFFSET_X'):
-        Xmin=Xmin - TDOA2POS_OFFSET_X
-        Xmax=Xmax + TDOA2POS_OFFSET_X
-
+        Xmin=Xmin - cfg.TDOA2POS_OFFSET_X
+        Xmax=Xmax + cfg.TDOA2POS_OFFSET_X
     if hasattr(cfg, 'TDOA2POS_OFFSET_Y'):
-        Ymin=Ymin - TDOA2POS_OFFSET_Y
-        Ymax=Ymax + TDOA2POS_OFFSET_Y
-
-
+        Ymin=Ymin - cfg.TDOA2POS_OFFSET_Y
+        Ymax=Ymax + cfg.TDOA2POS_OFFSET_Y
     if hasattr(cfg, 'TDOA2POS_FACTOR_X'):
         Xrange=Xmax-Xmin
         Xmin=Xmin - (Xrange*cfg.TDOA2POS_FACTOR_X)
         Xmax=Xmax + (Xrange*cfg.TDOA2POS_FACTOR_X)
-
     if hasattr(cfg, 'TDOA2POS_FACTOR_Y'):
         Yrange=Ymax-Ymin
         Ymin=Ymin - (Yrange * cfg.TDOA2POS_FACTOR_Y)
         Ymax=Ymax + (Yrange * cfg.TDOA2POS_FACTOR_Y)
-
     #print (Xmin, Ymin, Xmax, Ymax)
     #to be defined
     bnds=((Xmin, Ymin), (Xmax, Ymax))

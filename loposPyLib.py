@@ -288,7 +288,7 @@ def checkForSchedules(table, scenario, _reqScheduleCB = None):
                 else DATE_ADD(ref.last_update, INTERVAL p.interval SECOND) 
             end as schedule,
             CASE 
-                WHEN ref.last_update IS NULL THEN 50000 
+                WHEN ref.last_update IS NULL THEN p.interval/2
                 else TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval
             end as diff
         FROM 
@@ -305,7 +305,7 @@ def checkForSchedules(table, scenario, _reqScheduleCB = None):
                     or 
                     (TIMESTAMPDIFF(SECOND,ref.last_update,now()) > ( p.interval - (sys.SFmax*sys.SFticks/32768)) ) 
             )
-        order by 2;        
+        order by 3 desc;        
     """
     records = wrappedSql(sql, {'scenario':scenario} )
     for needSchedule in records:

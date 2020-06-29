@@ -219,7 +219,12 @@ def scheduleTDoAAlt():
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
     global tagPerCoreCell
     tagPerCoreCell.clear()
-    tagPerCoreCell = cfg.tagPerCoreCellFixed.copy()
+    for core in cfg.tagPerCoreCellFixed.keys():
+        for tagIdx in cfg.tagPerCoreCellFixed[core]:
+            try:
+                    tagPerCoreCell[core].append(0x1000+tagIdx)
+            except KeyError:
+                    tagPerCoreCell[core] = [0x1000+tagIdx]   
     processTagPerCoreCell()
 
 #-----------------------------------------------------------

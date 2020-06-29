@@ -1,21 +1,28 @@
 lclDir=`dirname $0`
-delay=$((15*60))
+delay=$((10*60))
 if [ ! -z "$1" ]; then
 	delay="$1"
         delay="$1"
 fi
 echo will use delay $delay
-sleep 1
 source $lclDir/local_cfg
 sql=`cat << EndOfMessage
-SELECT * FROM device WHERE addr NOT IN 
-    ( SELECT addr FROM stat where TIMESTAMPDIFF(SECOND,updated,now()) < 180 group by addr) 
+SET @rowA := 0;
+SELECT 
+	@rowA := @rowA + 1 as idx,
+	addr, hex(addr), addr&0x0FFF, mac
+FROM device WHERE addr NOT IN 
+    ( SELECT addr FROM stat where TIMESTAMPDIFF(SECOND,updated,now()) < $delay group by addr) 
 and (addr&0xFF00)=0x1000
-and addr<>0x1015
-and addr<>0x1016
-and addr<>0x1017
-and addr<>0x1018
-and addr<>0x1019;
+union
+SELECT 
+	@rowA := @rowA + 1 as idx,
+	addr, hex(addr), addr&0x0FFF, mac
+FROM device WHERE addr NOT IN 
+    ( SELECT addr FROM stat where TIMESTAMPDIFF(SECOND,updated,now()) < $delay group by addr) 
+and (addr&0xFF00)=0xA000
+order by 2;
+
 
 EndOfMessage`
 mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"

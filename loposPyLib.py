@@ -148,9 +148,9 @@ def localizeDiscoverTags(age, minRxPow):
                 u.devTx as devTx, u.rxPow as rxPow, x, y, z, u.devRx as devRx, 
                 case 
                     when u.rxPow > -70 then 10
-                    when u.rxPow > -80 then 7
-                    when u.rxPow > -90 then 3
-                    else 1
+                    when u.rxPow > -78 then 7
+                    when u.rxPow > -85 then 1
+                    else 0
                 end as weight
             FROM 
                 uwbstat as u, position as p
@@ -324,14 +324,15 @@ SFidxRef=0
 SFrepIdxRef=0
 
 def keepOutRepeatingAndfixedSF(SFid):
+    reducedSFoffset = {0:2, 1:1, 2:0, 3:3, 4:2, 5:1, 6:0, 7:3}  
     if SFid <= cfg.LOPOS_LAST_FIXED_SF:
         SFid = cfg.LOPOS_LAST_FIXED_SF + 1
     if SFid >cfg.LOPOS_LAST_USABLE_SF:
         loposPy.deleteOldSchedules(0)
         print("ERROR: Hyperframe !")
         sys.exit()
-    if SFid % cfg.LOPOS_SF_BLOCK_SIZE >= 2:
-        SFid += cfg.LOPOS_SF_BLOCK_SIZE - (SFid % cfg.LOPOS_SF_BLOCK_SIZE)
+    blockOfs = SFid % cfg.LOPOS_SF_BLOCK_SIZE
+    SFid += reducedSFoffset[blockOfs]
     return SFid        
 
 def claimRepeatingAndfixedSF(SFid):
@@ -352,7 +353,7 @@ def initSFidxRef():
     SFidxRef = keepOutRepeatingAndfixedSF(0)
     return SFidxRef
 
-def geNextSFidxRef():
+def getNextSFidxRef():
     global SFidxRef
     SFidxCurr = SFidxRef
     SFidxRef = keepOutRepeatingAndfixedSF(SFidxCurr+1)
@@ -364,7 +365,7 @@ def initSFrepIdxRef():
     SFrepIdxRef = claimRepeatingAndfixedSF(0)
     return SFrepIdxRef
 
-def geNextSFrepIdxRef():
+def getNextSFrepIdxRef():
     global SFrepIdxRef 
     SFrepIdxCurr = SFrepIdxRef
     SFrepIdxRef = claimRepeatingAndfixedSF(SFrepIdxCurr+1)

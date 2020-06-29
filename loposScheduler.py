@@ -15,6 +15,7 @@ print = functools.partial(print, flush=True)
 
 stats_ActorCnt=0
 stats_SFcnt=0
+stats_SF_cnt = 0
 disc_ActorCnt=0
 disc_SFcnt=0
 tdoa_ActorCnt=0
@@ -26,17 +27,17 @@ tagPerCoreCell = {}
 def testFwd(dev,anchor): 
     print("Schedule testFwd: ")
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Fwd)    
-    SF2fwd = loposPy.geNextSFidxRef()
-    SF2sink = loposPy.geNextSFidxRef()
+    SF2fwd = loposPy.getNextSFidxRef()
+    SF2sink = loposPy.getNextSFidxRef()
     loposPy.insertTodo(anchor, SF2fwd, cfg.LOPOS_SCENARIO_Stat, 11, 0, 0)
     loposPy.insertTodo(dev, SF2fwd, cfg.LOPOS_SCENARIO_Stat, 1, 0, 0)
     loposPy.insertTodo(0xFFF0, SF2sink, cfg.LOPOS_SCENARIO_Fwd, 0, 0, 0)
     loposPy.insertTodo(anchor, SF2sink, cfg.LOPOS_SCENARIO_Fwd, 1, 0, 0)
-    #geNextSFidxRef()
+    #getNextSFidxRef()
 
 def testTDoA(): 
     print("Schedule testTDoA: ")
-    SFidx = loposPy.geNextSFidxRef()
+    SFidx = loposPy.getNextSFidxRef()
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
     loposPy.insertTodo(0xFFF0, SFidx, cfg.LOPOS_SCENARIO_TDoA, 0, 0, 0)
     loposPy.insertTodo(0xA000, SFidx, cfg.LOPOS_SCENARIO_TDoA, 1, 0, 0)
@@ -49,7 +50,7 @@ def testTDoA():
 
 def testAccel(dev): 
     print("Schedule testAccel: ")
-    SFrepIdxRef=loposPy.geNextSFrepIdxRef()
+    SFrepIdxRef=loposPy.getNextSFrepIdxRef()
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Accel)    
     loposPy.insertTodo(0xFFF0, SFrepIdxRef, cfg.LOPOS_SCENARIO_Accel, 0, 1, 0)
     loposPy.insertTodo(dev, SFrepIdxRef, cfg.LOPOS_SCENARIO_Accel, 1, 1, 0)
@@ -59,13 +60,13 @@ def testAnchor(addr):
     loposPy.cleanupScenarioActor4dev(cfg.LOPOS_SCENARIO_System, 2, addr)
     numSlots = 3
     for i in range(numSlots):    
-        #SFcnt = loposPy.geNextSFidxRef()
+        #SFcnt = loposPy.getNextSFidxRef()
         #loposPy.insertTodo(addr, i*(256/numSlots)+6, cfg.LOPOS_SCENARIO_System, 2, 0, 0)
         loposPy.insertTodo(addr, i*80+6, cfg.LOPOS_SCENARIO_System, 2, 0, 0)
 
 def testDiscover(anchor, dev): 
     print("Schedule discover: ")
-    SFcnt = loposPy.geNextSFidxRef()
+    SFcnt = loposPy.getNextSFidxRef()
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Discover)
     loposPy.insertTodo(0xFFF0, SFcnt, cfg.LOPOS_SCENARIO_Discover, 0, 0, 0)
     loposPy.insertTodo(anchor, SFcnt, cfg.LOPOS_SCENARIO_Discover, 1, 0, 0)
@@ -73,7 +74,7 @@ def testDiscover(anchor, dev):
 
 def testUWB(anchor, dev): 
     print("Schedule UWB: ")
-    SFcnt = loposPy.geNextSFidxRef()
+    SFcnt = loposPy.getNextSFidxRef()
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Uwb)
     loposPy.insertTodo(0xFFF0, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 0, 0, 0)
     loposPy.insertTodo(anchor, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 1, 0, 0)
@@ -82,6 +83,11 @@ def testUWB(anchor, dev):
 def scheduleStatsCB(addr, last, overdue):
     global stats_ActorCnt
     global stats_SFcnt
+    global stats_SF_cnt
+    stats_SF_cnt += 1
+    if (stats_SF_cnt > 30):
+        return
+
     #print("scheduleStatsCB: " + hex(addr) + " "+ last + " "+ str(overdue)+ "s"  )
     if stats_ActorCnt == 0:
         loposPy.insertTodo(0xFFF0, stats_SFcnt,  cfg.LOPOS_SCENARIO_Stat, stats_ActorCnt, 0, last)
@@ -90,14 +96,16 @@ def scheduleStatsCB(addr, last, overdue):
     stats_ActorCnt +=1
     if stats_ActorCnt > 10:
         stats_ActorCnt = 0
-        stats_SFcnt = loposPy.geNextSFidxRef()
+        stats_SFcnt = loposPy.getNextSFidxRef()
 
 def scheduleStats():
     print("Schedule dev reports: ")
     global stats_ActorCnt
     global stats_SFcnt
+    global stats_SF_cnt
+    stats_SF_cnt = 0
     stats_ActorCnt = 0
-    stats_SFcnt = loposPy.geNextSFidxRef()
+    stats_SFcnt = loposPy.getNextSFidxRef()
     loposPy.checkForSchedules("stat", cfg.LOPOS_SCENARIO_Stat, scheduleStatsCB)
 
 
@@ -130,7 +138,7 @@ def scheduleTdoaCB(addr, last, overdue):
         disc_ActorCnt +=1
         if disc_ActorCnt > cfg.LOPOS_SCENARIO_Discover_TAG_MAX:
             disc_ActorCnt = 0
-            disc_SFcnt = loposPy.geNextSFidxRef()
+            disc_SFcnt = loposPy.getNextSFidxRef()
     else :
         global tagPerCoreCell
         core = loposPy.findCloseCore(addr,1000)
@@ -146,7 +154,7 @@ def processTagPerCoreCell() :
     print(tagPerCoreCell)
     for core in tagPerCoreCell.keys():
         tdoa_ActorCnt = 0
-        tdoa_SFcnt = loposPy.geNextSFidxRef() #maybe not used?
+        tdoa_SFcnt = loposPy.getNextSFidxRef() #maybe not used?
         print(tagPerCoreCell[core])
         for addr in tagPerCoreCell[core]:
             if tdoa_ActorCnt == 0:
@@ -161,7 +169,7 @@ def processTagPerCoreCell() :
             tdoa_ActorCnt +=1
             if tdoa_ActorCnt > cfg.LOPOS_SCENARIO_TDoA_TAG_MAX:
                 tdoa_ActorCnt = 0
-                tdoa_SFcnt = loposPy.geNextSFidxRef()
+                tdoa_SFcnt = loposPy.getNextSFidxRef()
 
 def scheduleTDoA():
     print("Schedule TDoA reports: ")
@@ -170,7 +178,7 @@ def scheduleTDoA():
     global disc_ActorCnt
     global disc_SFcnt
     disc_ActorCnt = 0
-    disc_SFcnt = loposPy.geNextSFidxRef() #maybe not used?
+    disc_SFcnt = loposPy.getNextSFidxRef() #maybe not used?
     loposPy.getPositionTags()
     loposPy.localizeDiscoverTags(100,-87.0)
 

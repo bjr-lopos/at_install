@@ -1,6 +1,21 @@
 lclDir=`dirname $0`
 source $lclDir/local_cfg
 sql=`cat << EndOfMessage
-select addr, addr&0xFFF, max(updated) from position where numHyperbola> 2 group by addr;
+select 
+	addr, 
+	addr&0xFFF, 
+	updated,
+	numHyperbola,
+	numPyTime,
+	TIMESTAMPDIFF(SECOND,updated,now()) as diff
+from 
+	(select addr as addrRef, max(updated) as updatedRef from position group by addr) as recent,
+	position 
+where 
+	addrRef = addr
+	and
+	updatedRef=updated
+	and
+	numHyperbola> 0;
 EndOfMessage`
 mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"

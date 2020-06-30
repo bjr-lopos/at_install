@@ -184,8 +184,10 @@ def processTagPerCoreCell() :
     for core in tagPerCoreCell.keys():
         tdoa_ActorCnt = 0
         tdoa_SFidx = loposPy.getNextSFidxRef() #maybe not used?
-        print(core, ":", tagPerCoreCell[core], " ", len(tagPerCoreCell[core]), " ", tdoa_SFcnt)
-        for addr in tagPerCoreCell[core]:
+        addrList = deque(tagPerCoreCell[core])
+        addrList.rotate(alt_tdoa_iter)
+        print(core, ":", addrList, " ", len(addrList), " ", tdoa_SFcnt)
+        for addr in addrList:
             if tdoa_ActorCnt == 0:
                 loposPy.insertTodo(0xFFF0, tdoa_SFidx,  cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, 0, 0)
                 tdoa_ActorCnt +=1
@@ -241,7 +243,7 @@ def scheduleTDoAAlt():
                     tagPerCoreCell[core] = [0x1000+tagIdx]   
     processTagPerCoreCell()
     alt_tdoa_iter += 1
-    if alt_tdoa_iter >= len(cfg.tagPerCoreCellFixed):
+    if alt_tdoa_iter >= (17*len(cfg.tagPerCoreCellFixed)):
         alt_tdoa_iter = 0
 
 #-----------------------------------------------------------

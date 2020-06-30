@@ -5,6 +5,7 @@
 
 import time
 from datetime import datetime
+from collections import deque
 import paho.mqtt.client as mqtt
 import mysql.connector
 import functools
@@ -20,6 +21,7 @@ disc_ActorCnt=0
 disc_SFidx=0
 tdoa_ActorCnt=0
 tdoa_SFidx=0
+alt_tdoa_iter = 0
 
 tagPerCoreCell = {} 
 
@@ -177,11 +179,12 @@ def processTagPerCoreCell() :
     global tagPerCoreCell
     global tdoa_ActorCnt
     global tdoa_SFidx
+    tdoa_SFcnt = 0
     print(tagPerCoreCell)
     for core in tagPerCoreCell.keys():
         tdoa_ActorCnt = 0
         tdoa_SFidx = loposPy.getNextSFidxRef() #maybe not used?
-        print(tagPerCoreCell[core], " ", len(tagPerCoreCell[core]))
+        print(core, ":", tagPerCoreCell[core], " ", len(tagPerCoreCell[core]), " ", tdoa_SFcnt)
         for addr in tagPerCoreCell[core]:
             if tdoa_ActorCnt == 0:
                 loposPy.insertTodo(0xFFF0, tdoa_SFidx,  cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, 0, 0)
@@ -194,8 +197,16 @@ def processTagPerCoreCell() :
             loposPy.insertTodo(addr, tdoa_SFidx, cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, 0, 0)
             tdoa_ActorCnt +=1
             if tdoa_ActorCnt > cfg.LOPOS_SCENARIO_TDoA_TAG_MAX:
+                tdoa_SFcnt += 1
+                if tdoa_SFcnt>=6: 
+                    return
                 tdoa_ActorCnt = 0
                 tdoa_SFidx = loposPy.getNextSFidxRef()
+        if tdoa_ActorCnt != 0:
+            tdoa_SFcnt += 1
+            if tdoa_SFcnt>=6: 
+                return
+
 
 def scheduleTDoA():
     print("Schedule TDoA reports: ")
@@ -215,17 +226,23 @@ def scheduleTDoA():
 
 
 def scheduleTDoAAlt():
+    global alt_tdoa_iter
     print("Schedule TDoA alt reports: ")
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
     global tagPerCoreCell
     tagPerCoreCell.clear()
-    for core in cfg.tagPerCoreCellFixed.keys():
+    coreList = deque(cfg.tagPerCoreCellFixed.keys())
+    coreList.rotate(alt_tdoa_iter)
+    for core in coreList:
         for tagIdx in cfg.tagPerCoreCellFixed[core]:
             try:
                     tagPerCoreCell[core].append(0x1000+tagIdx)
             except KeyError:
                     tagPerCoreCell[core] = [0x1000+tagIdx]   
     processTagPerCoreCell()
+    alt_tdoa_iter += 1
+    if alt_tdoa_iter >= len(cfg.tagPerCoreCellFixed):
+        alt_tdoa_iter = 0
 
 #-----------------------------------------------------------
 #Actions

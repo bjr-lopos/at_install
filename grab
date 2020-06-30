@@ -1,0 +1,26 @@
+lclDir=`dirname $0`
+source $lclDir/local_cfg
+#GRANT FILE ON *.* TO 'lopos'@'localhost';
+resFile=/var/lib/mysql-files/`date | sed -e 's/ /_/g'`.csv
+sql=`cat << EndOfMessage
+select 
+	addr&0xFFF, x, y, updated 
+from 
+	position
+where
+	numHyperbola > 2
+	and 
+	updated > "2020-06-29 22:00:00"
+order by 4
+INTO OUTFILE 
+	"$resFile"
+FIELDS ENCLOSED BY '\"'  
+TERMINATED BY ';'  
+ESCAPED BY '\"'  
+LINES TERMINATED BY '\r\n';
+EndOfMessage`
+#mysql --local-infile -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
+echo results should be in $resFile
+
+

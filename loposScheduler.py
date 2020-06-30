@@ -238,8 +238,10 @@ def planActions():
     t1=int(round(time.time() * 1000000))
     current_time = now.strftime("%H:%M:%S %B %d %Y")
     print("Schedule iteration (will clean up old todo): @", current_time)
+    loposPy.wrappedESqlDoCommitAndSetInstant(1)
     loposPy.deleteOldSchedules(2)
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Stat)
+    loposPy.wrappedESqlDoCommitAndSetInstant(0)
 
     if hasattr(cfg, 'tagPerCoreCellFixed'):
         scheduleTDoAAlt()
@@ -273,7 +275,7 @@ def planActions():
         if cfg.testUWB == 1:
             testUWB(0xA000, 0x1004)
 
-    loposPy.wrappedESqlCommit()
+    loposPy.wrappedESqlDoCommitAndSetInstant(0)
     t2=int(round(time.time() * 1000000))
     print("Scheduler finished in ", t2-t1, "us")
 

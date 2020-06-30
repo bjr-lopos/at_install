@@ -20,6 +20,7 @@ positionAnchor = {}
 positionCoreAnchor = {}
 positionTag = {}
 discoveredTag = {} 
+sqlInstantCommit = 1
 
 def initDB():
     global mydb
@@ -40,8 +41,9 @@ def _wrappedSql(sql, param, expectResults):
         if expectResults:
             records = mycursor.fetchall()
             return records
-        #else:
-            #mydb.commit()
+        else:
+            if sqlInstantCommit == 1:
+                mydb.commit()
     except Exception as ex:
         print(ex)        
     except mysql.connector.Error as err:
@@ -58,8 +60,10 @@ def wrappedSql(sql, param):
 def wrappedESql(sql, param):
     _wrappedSql(sql, param, 0)
 
-def wrappedESqlCommit():
+def wrappedESqlDoCommitAndSetInstant(instantCommit):
+    #if sqlInstantCommit == 0:
     mydb.commit()
+    sqlInstantCommit = instantCommit
 
 
 def cleanupSFid(scheduleAT):

@@ -1,0 +1,6 @@
+lclDir=`dirname $0`
+source $lclDir/local_cfg
+sql=`cat << EndOfMessage
+select addr, addr&0xFFF, max(updated) from position where numHyperbola> 2 group by addr;
+EndOfMessage`
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"

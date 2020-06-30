@@ -36,6 +36,7 @@ def initDB():
 
 
 def _wrappedSql(sql, param, expectResults):
+    global sqlInstantCommit
     try:
         mycursor.execute(sql, param)
         if expectResults:
@@ -61,6 +62,7 @@ def wrappedESql(sql, param):
     _wrappedSql(sql, param, 0)
 
 def wrappedESqlDoCommitAndSetInstant(instantCommit):
+    global sqlInstantCommit
     #if sqlInstantCommit == 0:
     mydb.commit()
     sqlInstantCommit = instantCommit

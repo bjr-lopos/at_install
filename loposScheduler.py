@@ -66,6 +66,15 @@ def testAnchor(addr):
         #loposPy.insertTodo(addr, i*(256/numSlots)+6, cfg.LOPOS_SCENARIO_System, 2, 0, 0)
         loposPy.insertTodo(addr, i*80+6, cfg.LOPOS_SCENARIO_System, 2, 0, 0)
 
+def testSinkStress(addr): 
+    print("Schedule sinkStress: ")
+    numSlots = 120
+    for i in range(numSlots):    
+        stats_SFidx = loposPy.getNextSFrepIdxRef()
+        loposPy.insertTodo(0xFFF0, stats_SFidx, cfg.LOPOS_SCENARIO_Stat, 0, 0, 0)
+        #loposPy.insertTodo(addr,   stats_SFidx + 0, cfg.LOPOS_SCENARIO_Stat, 12, 0, 0)
+
+
 def testDiscover(anchor, dev): 
     print("Schedule discover: ")
     SFcnt = loposPy.getNextSFidxRef()
@@ -273,6 +282,10 @@ def planActions():
     if hasattr(cfg, 'testAnchor'):
         if cfg.testAnchor == 1:
             testAnchor(0xA01E)
+
+    if hasattr(cfg, 'testSinkStress'):
+        if cfg.testSinkStress == 1:
+            testSinkStress(0xA001)
 
     if hasattr(cfg, 'testFwd'):
         if cfg.testFwd == 1:

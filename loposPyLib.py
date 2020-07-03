@@ -334,8 +334,7 @@ SFidxRef=0
 SFrepIdxRef=0
 
 def keepOutRepeatingAndfixedSF(SFid):
-    ##reducedSFoffset = {0:2, 1:1, 2:0, 3:3, 4:2, 5:1, 6:0, 7:3}  
-    reducedSFoffset = {0:4, 1:3, 2:2, 3:1, 4:0, 5:7, 6:6, 7:5}  
+    adjust2allowedOffsets = {0:0, 1:0, 2:6, 3:5, 4:4, 5:3, 6:2, 7:1}  
     if SFid <= cfg.LOPOS_LAST_FIXED_SF:
         SFid = cfg.LOPOS_LAST_FIXED_SF + 1
     if SFid >cfg.LOPOS_LAST_USABLE_SF:
@@ -343,20 +342,19 @@ def keepOutRepeatingAndfixedSF(SFid):
         print("ERROR: Hyperframe !")
         sys.exit()
     blockOfs = SFid % cfg.LOPOS_SF_BLOCK_SIZE
-    SFid += reducedSFoffset[blockOfs]
+    SFid += adjust2allowedOffsets[blockOfs]
     return SFid        
 
 def claimRepeatingAndfixedSF(SFid):
+    adjust2allowedOffsets = {0:2, 1:1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}  
     if SFid <= cfg.LOPOS_LAST_FIXED_SF:
         SFid = cfg.LOPOS_LAST_FIXED_SF + 1
     if SFid >cfg.LOPOS_LAST_USABLE_SF:
         loposPy.deleteOldSchedules(0)
         print("ERROR: Hyperframe overstressed!")
         sys.exit()
-    if SFid % cfg.LOPOS_SF_BLOCK_SIZE <= 2:
-        SFid += 2 - (SFid % cfg.LOPOS_SF_BLOCK_SIZE)
-    if SFid % cfg.LOPOS_SF_BLOCK_SIZE == cfg.LOPOS_SF_BLOCK_SIZE -1:
-        SFid += 3
+    blockOfs = SFid % cfg.LOPOS_SF_BLOCK_SIZE
+    SFid += adjust2allowedOffsets[blockOfs]
     return SFid        
 
 def initSFidxRef():

@@ -21,6 +21,9 @@ disc_ActorCnt=0
 disc_SFidx=0
 tdoa_ActorCnt=0
 tdoa_SFidx=0
+uwb_ActorCnt = 0
+uwb_SFidx = 0
+
 alt_tdoa_iter = 0
 
 tagPerCoreCell = {} 
@@ -152,6 +155,11 @@ def discReqAnchorCellCB(core, edge):
     loposPy.insertTodo(edge, disc_SFidx,  cfg.LOPOS_SCENARIO_Discover, disc_ActorCnt, 0, 0)
     disc_ActorCnt +=1
 
+def uwbinfoReqAnchorCellCB(core, edge):
+    global uwb_ActorCnt
+    global uwb_SFidx
+    loposPy.insertTodo(edge, uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+    uwb_ActorCnt +=1
 
 def tdoaReqAnchorCellCB(core, edge):
     global tdoa_ActorCnt
@@ -255,6 +263,22 @@ def scheduleTDoAAlt():
     if alt_tdoa_iter >= (17*len(cfg.tagPerCoreCellFixed)):
         alt_tdoa_iter = 0
 
+
+def uwbInfoAllCells():
+    global uwb_ActorCnt        
+    global uwb_SFidx
+    for core in loposPy.getCoreAnchors():
+        print ("core is :", core)
+        uwb_SFidx = loposPy.getNextSFidxRef()
+        uwb_ActorCnt = 0
+        loposPy.insertTodo(0xFFF0, uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        uwb_ActorCnt +=1
+        loposPy.requestAnchorPerCell(core, cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1, uwbinfoReqAnchorCellCB)
+        if (uwb_ActorCnt < cfg.LOPOS_SCENARIO_UWB_TAG_OFS):
+            uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
+        loposPy.insertTodo(core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+
+
 #-----------------------------------------------------------
 #Actions
 #-----------------------------------------------------------
@@ -270,6 +294,9 @@ def planActions():
     loposPy.deleteOldSchedules(2)
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Stat)
     loposPy.wrappedESqlDoCommitAndSetInstant(0)
+
+    if hasattr(cfg, 'uwbInfoAllCells'):
+        uwbInfoAllCells()
 
     if hasattr(cfg, 'tagPerCoreCellFixed'):
         scheduleTDoAAlt()

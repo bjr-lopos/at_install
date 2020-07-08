@@ -136,8 +136,11 @@ def getPositionCoreAnchors():
         addr=core[4]
         positionCoreAnchor[id]=[x, y, z,addr]
 
-def getNumCorAnchors():
+def getNumCoreAnchors():
     return len(positionCoreAnchor)
+
+def getCoreAnchors():
+    return positionCoreAnchor.keys()
 
 def localizeDiscoverTags(age, minRxPow):
     global discoveredTag

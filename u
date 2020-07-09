@@ -1,0 +1,61 @@
+lclDir=`dirname $0`
+delay=$((15*60))
+if [ ! -z "$1" ]; then
+	delay="$1"
+        delay="$1"
+fi
+echo will use delay $delay
+source $lclDir/local_cfg
+sql=`cat << EndOfMessage
+	     SELECT 
+    case
+        when devTx&0xF000 = 0xA000 then "anchor"
+        when devTx&0xFFF0 = 0xFFF0 then "sink"
+    else
+        "tag"
+    end
+    as typeTx,
+    case
+        when devTx&0xFFF0 = 0xFFF0 then devTx&0x000F
+    else
+        devTx&0x0FFF
+    end
+    as idTx, 
+    case
+        when devRx&0xF000 = 0xA000 then "anchor"
+        when devRx&0xFFF0 = 0xFFF0 then "sink"
+    else
+        "tag"
+    end
+    as typeRx,
+    case
+        when devRx&0xFFF0 = 0xFFF0 then devRx&0x000F
+    else
+        devRx&0x0FFF
+    end
+    as idRx, 
+                count(*) as cnt, 
+		round(avg(rxPow)) as rxPow,
+		min(rxPow) as min_rxPow,
+		max(rxPow) as max_rxPow,
+		round(avg(rxQual)) as rxQual,
+		min(rxQUal) as min_rxQual,
+		max(rxQual) as max_rxQual,
+		round(avg(fpPow)) as fpPow,
+		min(fpPow) as min_fpPow,
+		max(fpPow) as max_fpPow
+            from 
+                uwbstat
+            where 
+                TIMESTAMPDIFF(SECOND,updated,now()) < $delay
+            group by 
+                devTx, devRx
+   order by 6
+
+EndOfMessage`
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
+
+
+
+
+

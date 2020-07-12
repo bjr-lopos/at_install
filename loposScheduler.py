@@ -11,6 +11,8 @@ import mysql.connector
 import functools
 import loposPyLib as loposPy
 import localConfig as cfg
+import numpy as np
+
 
 print = functools.partial(print, flush=True)
 
@@ -279,6 +281,81 @@ def uwbInfoAllCells():
         loposPy.insertTodo(core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
 
 
+def analyzeOpportunities(x,y,dx,dy,txA, rxA):
+    global uwb_ActorCnt
+    global uwb_SFidx
+    if len(rxA)==0 or len(txA)==0:
+        print("Abort analyzeOpportunities len(rxA) vs len(txA)", len(rxA), len(txA) )
+        return
+    uwb_ActorCnt = 0
+    uwb_SFidx = loposPy.getNextSFidxRef() #maybe not used?
+    loposPy.insertTodo(0xFFF0, uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+    uwb_ActorCnt +=1
+    for rxAe in rxA:
+        loposPy.insertTodo(int(rxAe), uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        uwb_ActorCnt +=1
+    if (uwb_ActorCnt < cfg.LOPOS_SCENARIO_UWB_TAG_OFS):
+        uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
+    for txAe in txA:
+        loposPy.insertTodo(int(txAe), uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        uwb_ActorCnt +=1
+
+def altIUwbInfolvoScan():
+	maxx=6
+	maxy=5
+	anchors = np.array([ 
+			[ 0xA00A,		-1,		-1,	0xA00E,	0xA00F,	0xA010],
+			[ 0xA00B,	0xA009,	0x1002,	0xA00D,	0xA014,	0xA011],
+			[ 0xA003,	0xA004,	0xA005,	0xA00C,	0xA013,	0xA012],
+			[ 0xA002,	0xA000,	0xA006,		-1,		-1,		-1],
+			[ 0xA001,	0xA008,	0xA007,		-1,		-1,		-1]
+	])
+	for x in range (0, maxx):
+		for dx in (-1,1):
+			rxA = []
+			txA = []
+			if x+dx < 0:
+				continue
+			if x+dx >= maxx:
+				continue
+			for y in range (0, maxy):
+				if anchors[y,x] != -1:
+					txA.append(anchors[y,x])
+				if anchors[y,x+dx] != -1:
+					rxA.append(anchors[y,x+dx])
+			analyzeOpportunities(x,0,dx,0,txA, rxA)
+	for y in range (0, maxy):
+		rxA = []
+		txA = []
+		for dy in (-1,1):
+			if y+dy < 0:
+				continue
+			if y+dy >= maxy:
+				continue
+			for x in range (0, maxx):
+				if x % 2 != 0: 
+					continue
+				if anchors[y,x] not in txA and  anchors[y,x] != -1:
+					txA.append(anchors[y,x])
+				if anchors[y+dy,x] != -1:
+					rxA.append(anchors[y+dy,x])
+		analyzeOpportunities(x,y,dx,dy,txA, rxA)
+		rxA = []
+		txA = []
+		for dy in (-1,1):
+			if y+dy < 0:
+				continue
+			if y+dy >= maxy:
+				continue
+			for x in range (0, maxx):
+				if x % 2 == 0: 
+					continue
+				if anchors[y,x] not in txA and  anchors[y,x] != -1:
+					txA.append(anchors[y,x])
+				if anchors[y+dy,x] != -1:
+					rxA.append(anchors[y+dy,x])
+		analyzeOpportunities(x,y,dx,dy,txA, rxA)
+
 #-----------------------------------------------------------
 #Actions
 #-----------------------------------------------------------
@@ -297,6 +374,8 @@ def planActions():
 
     if hasattr(cfg, 'uwbInfoAllCells'):
         uwbInfoAllCells()
+    if hasattr(cfg, 'altIUwbInfolvoScan'):
+        altIUwbInfolvoScan()
 
     if hasattr(cfg, 'tagPerCoreCellFixed'):
         scheduleTDoAAlt()

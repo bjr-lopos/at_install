@@ -278,7 +278,7 @@ def uwbInfoAllCells():
         loposPy.requestAnchorPerCell(core, cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1, uwbinfoReqAnchorCellCB)
         if (uwb_ActorCnt < cfg.LOPOS_SCENARIO_UWB_TAG_OFS):
             uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
-        loposPy.insertTodo(0xA000+core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        loposPy.insertTodo(core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
 
 
 def analyzeOpportunities(x,y,dx,dy,txA, rxA):

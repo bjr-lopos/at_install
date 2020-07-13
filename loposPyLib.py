@@ -145,6 +145,10 @@ def getCoreAnchors():
 def localizeDiscoverTags(age, minRxPow):
     global discoveredTag
     discoveredTag.clear()
+    #create index uwbstat_devRx on uwbstat (devRx); 
+    #create index uwbstat_devTx on uwbstat (devTx); 
+    #create index pos_addr on position (addr);
+    #create index uwbstat_upd_desc on uwbstat (updated desc);
     sql="""
         select 
             devTx, 
@@ -166,13 +170,9 @@ def localizeDiscoverTags(age, minRxPow):
                     else 0
                 end as weight
             FROM 
-                uwbstat as u, position as p
+                uwbstat as u left join position as p on u.devRx = p.addr
             where 
                 TIMESTAMPDIFF(SECOND,u.updated,now()) < %(age)s
-                and
-                u.devRx = p.addr
-                and 
-                p.asn = 0
             )
             as wu
         group by devTx

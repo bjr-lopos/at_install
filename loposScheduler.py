@@ -292,8 +292,9 @@ def analyzeOpportunities(x,y,dx,dy,txA, rxA):
     loposPy.insertTodo(0xFFF0, uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
     uwb_ActorCnt +=1
     for rxAe in rxA:
-        loposPy.insertTodo(int(rxAe), uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
-        uwb_ActorCnt +=1
+        if (int(rxAe) & 0xF000) == 0xA000:
+            loposPy.insertTodo(int(rxAe), uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+            uwb_ActorCnt +=1
     if (uwb_ActorCnt < cfg.LOPOS_SCENARIO_UWB_TAG_OFS):
         uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
     for txAe in txA:

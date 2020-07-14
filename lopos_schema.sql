@@ -274,7 +274,8 @@ CREATE TABLE `position` (
   `numHyperbola` int(3) DEFAULT NULL,
   `numPyTime` int(5) DEFAULT NULL,
   PRIMARY KEY (`addr`,`updated`),
-  KEY `index2` (`updated` desc,`addr`),
+  KEY `pos_addr_upd` (`updated` desc,`addr`),
+  KEY `pos_addr` (`addr`),
   CONSTRAINT `fk_position_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -300,6 +301,7 @@ CREATE TABLE `stat` (
   `sgRxRatio` int(3) NOT NULL DEFAULT '0',
   `uwbTxRatio` int(3) NOT NULL DEFAULT '0',
   `uwbRxRatio` int(3) NOT NULL DEFAULT '0',
+  `uwbTxPwr` int(3) DEFAULT '0',
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`addr`,`updated`),
   KEY `speedup` (`updated` desc,`addr`),
@@ -438,6 +440,9 @@ CREATE TABLE `uwbstat` (
   PRIMARY KEY (`devTx`,`devRx`,`asn`),
   KEY `fk_uwbstat_2_idx` (`devRx`),
   KEY `speedup` (`updated` desc,`devTx`),
+  KEY `uwbstat_devRx` (`devRx`),
+  KEY `uwbstat_devTx` (`devTx`),
+  KEY `uwbstat_upd_desc` (`updated`),
   CONSTRAINT `fk_uwbstat_1` FOREIGN KEY (`devTx`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_uwbstat_2` FOREIGN KEY (`devRx`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -486,4 +491,4 @@ CREATE TABLE `version` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-06-23 15:38:56
+-- Dump completed on 2020-07-14 10:46:51

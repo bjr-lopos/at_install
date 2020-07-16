@@ -76,6 +76,11 @@ def cleanupScenario(scenario):
     sql="delete from todo where scenario=%(scenario)s"
     wrappedESql(sql, {'scenario':scenario} )
 
+
+def cleanupScenarioActor(scenario, actor):
+    sql="delete from todo where scenario=%(scenario)s and actor=%(actor)s"
+    wrappedESql(sql, {'scenario':scenario, 'actor':actor} )
+
 def cleanupScenarioActor4dev(scenario, actor, addr):
     sql="delete from todo where addr=%(addr)s and scenario=%(scenario)s and actor=%(actor)s"
     wrappedESql(sql, {'addr':addr, 'scenario':scenario, 'actor':actor} )

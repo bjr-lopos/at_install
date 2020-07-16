@@ -47,13 +47,12 @@ def testTDoA():
     SFidx = loposPy.getNextSFidxRef()
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
     loposPy.insertTodo(0xFFF0, SFidx, cfg.LOPOS_SCENARIO_TDoA, 0, 0, 0)
-    loposPy.insertTodo(0xA000, SFidx, cfg.LOPOS_SCENARIO_TDoA, 1, 0, 0)
-    loposPy.insertTodo(0xA01E, SFidx, cfg.LOPOS_SCENARIO_TDoA, 2, 0, 0)
-    loposPy.insertTodo(0xA009, SFidx, cfg.LOPOS_SCENARIO_TDoA, 3, 0, 0)
-    loposPy.insertTodo(0x1001, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 0, 0, 0)
-    loposPy.insertTodo(0x1002, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 1, 0, 0)
-    loposPy.insertTodo(0x1004, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 2, 0, 0)
-    loposPy.insertTodo(0x1064, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 2, 0, 0)
+    loposPy.insertTodo(0xA009, SFidx, cfg.LOPOS_SCENARIO_TDoA, 1, 0, 0)
+    loposPy.insertTodo(0xA014, SFidx, cfg.LOPOS_SCENARIO_TDoA, 2, 0, 0)
+    loposPy.insertTodo(0xA01F, SFidx, cfg.LOPOS_SCENARIO_TDoA, 3, 0, 0)
+    loposPy.insertTodo(0x1029, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 0, 0, 0)
+    loposPy.insertTodo(0x1032, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 1, 0, 0)
+    loposPy.insertTodo(0x1080, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 2, 0, 0)
 
 def testAccel(dev): 
     print("Schedule testAccel: ")
@@ -80,21 +79,19 @@ def testSinkStress(addr):
         #loposPy.insertTodo(addr,   stats_SFidx + 0, cfg.LOPOS_SCENARIO_Stat, 12, 0, 0)
 
 
-def testDiscover(anchor, dev): 
+def testDiscover(devRx, devTx): 
     print("Schedule discover: ")
     SFcnt = loposPy.getNextSFidxRef()
-    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Discover)
     loposPy.insertTodo(0xFFF0, SFcnt, cfg.LOPOS_SCENARIO_Discover, 0, 0, 0)
-    loposPy.insertTodo(anchor, SFcnt, cfg.LOPOS_SCENARIO_Discover, 1, 0, 0)
-    loposPy.insertTodo(dev, SFcnt, cfg.LOPOS_SCENARIO_Discover, cfg.LOPOS_SCENARIO_Discover_TAG_OFS + 0, 0, 0)
+    loposPy.insertTodo(devRx, SFcnt, cfg.LOPOS_SCENARIO_Discover, 1, 0, 0)
+    loposPy.insertTodo(devTx, SFcnt, cfg.LOPOS_SCENARIO_Discover, cfg.LOPOS_SCENARIO_Discover_TAG_OFS + 0, 0, 0)
 
-def testUWB(anchor, dev): 
+def testUWB(devRx, devTx): 
     print("Schedule UWB: ")
     SFcnt = loposPy.getNextSFidxRef()
-    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Uwb)
     loposPy.insertTodo(0xFFF0, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 0, 0, 0)
-    loposPy.insertTodo(anchor, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 1, 0, 0)
-    loposPy.insertTodo(dev, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 9, 0, 0)
+    loposPy.insertTodo(devRx, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 1, 0, 0)
+    loposPy.insertTodo(devTx, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 9, 0, 0)
 
 def scheduleStatsCB(addr, last, overdue):
     global stats_ActorCnt
@@ -408,11 +405,21 @@ def planActions():
 
     if hasattr(cfg, 'testDiscover'):
         if cfg.testDiscover == 1:
-            testDiscover(0xA01E, 0x1004)
+            loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Discover)
+            testDiscover(0xA014, 0xA009)
+            testDiscover(0xA009, 0xA014)
 
     if hasattr(cfg, 'testUWB'):
         if cfg.testUWB == 1:
-            testUWB(0xA000, 0x1004)
+            loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Uwb)
+            loposPy.insertTodo(0xA009, 0x38, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            testUWB(0xA009, 0xA014)
+            testUWB(0xA014, 0xA009)
+            loposPy.insertTodo(0xA001, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            loposPy.insertTodo(0xA002, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            #loposPy.insertTodo(0xA002, 0x38, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            testUWB(0xA002, 0xA001)
+            testUWB(0xA001, 0xA002)
 
     loposPy.wrappedESqlDoCommitAndSetInstant(0)
     t2=int(round(time.time() * 1000000))

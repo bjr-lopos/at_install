@@ -1,6 +1,6 @@
 #pip3 install paho-mqtt python-etcd
 #pip3 install mysql-connector-python-rf
-#python3 -m pip install mysql-connector
+#python3 -m pip install mysql-connector-python
 
 import time
 import sys

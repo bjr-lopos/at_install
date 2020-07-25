@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #pip3 install paho-mqtt python-etcd
 #pip3 install mysql-connector-python-rf
-#python3 -m pip install mysql-connector
+#python3 -m pip install mysql-connector-python
 
 import time
 from datetime import datetime
@@ -418,8 +418,8 @@ def planActions():
             loposPy.insertTodo(0xA001, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
             loposPy.insertTodo(0xA002, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
             #loposPy.insertTodo(0xA002, 0x38, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
-            testUWB(0xA002, 0xA001)
-            testUWB(0xA001, 0xA002)
+            #testUWB(0xA002, 0xA001)
+            #testUWB(0xA001, 0xA002)
 
     loposPy.wrappedESqlDoCommitAndSetInstant(0)
     t2=int(round(time.time() * 1000000))

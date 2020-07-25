@@ -1,6 +1,6 @@
 #pip3 install paho-mqtt python-etcd
 #pip3 install mysql-connector-python-rf
-#python3 -m pip install mysql-connector
+#python3 -m pip install mysql-connector-python
 
 import sys
 import time
@@ -29,7 +29,8 @@ def initDB():
         host=cfg.mysql["host"], 
         user=cfg.mysql["user"], 
         passwd=cfg.mysql["passwd"], 
-        database=cfg.mysql["db"]
+        database=cfg.mysql["db"],
+        auth_plugin='mysql_native_password'        
     )
     #print(mydb)
     mycursor = mydb.cursor()

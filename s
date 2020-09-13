@@ -5,7 +5,7 @@ if [ ! -z "$1" ]; then
         delay="$1"
 fi
 echo will use delay $delay
-sleep 1
+#sleep 1
 source $lclDir/local_cfg
 sql=`cat << EndOfMessage
 select

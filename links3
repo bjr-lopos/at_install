@@ -1,0 +1,31 @@
+lclDir=`dirname $0`
+delay=$((15*60))
+if [ ! -z "$1" ]; then
+	delay="$1"
+        delay="$1"
+fi
+echo will use delay $delay
+#sleep 1
+source $lclDir/local_cfg
+sql=`cat << EndOfMessage
+select
+	min(updated) upd,
+	TIMESTAMPDIFF(HOUR,updated,DATE_FORMAT(NOW(), '%Y-%m-%d %H:00:00')) as window,
+	min(beaconRSSI) as min,
+	avg(beaconRSSI) as avg,
+	max(beaconRSSI) as max,
+	count(*)
+from 
+	stat
+where 
+	addr in (0xA00A) and
+	TIMESTAMPDIFF(DAY,updated,now()) < 21
+group by
+	window
+order by 
+	2 desc
+EndOfMessage`
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql" 
+
+
+

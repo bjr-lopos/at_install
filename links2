@@ -1,0 +1,32 @@
+lclDir=`dirname $0`
+delay=$((15*60))
+if [ ! -z "$1" ]; then
+	delay="$1"
+        delay="$1"
+fi
+echo will use delay $delay
+#sleep 1
+source $lclDir/local_cfg
+sql=`cat << EndOfMessage
+select
+	min(updated),
+	FLOOR(TIMESTAMPDIFF(SECOND,updated,now())/6400) as window,
+	devTx &0x0FFF as devTx,
+	devRx &0x0FFF as devRx,
+	round(100*(count(*)/(6400/32)))
+from 
+	uwbstat
+where 
+	devRx in (0xA01B, 0xA01C, 0xA01D) and
+	devTx in (0xA01B, 0xA01C, 0xA01D) and
+	TIMESTAMPDIFF(HOUR,updated,now()) < 72
+group by
+	window, devTx, devRx
+order by 
+	2 desc , 3, 4
+INTO OUTFILE '/tmp/links_3_aug_2020_2.csv' FIELDS  TERMINATED BY ';' LINES TERMINATED BY '\r\n';
+EndOfMessage`
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql" 
+
+
+

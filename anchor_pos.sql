@@ -1,0 +1,34 @@
+delete from position where addr&0xFF00 = 0xa000;
+
+
+insert into position values (40960, 0,-2399,-2257, 200, now(), 0, 0);
+insert into position values (40961, 0,-4381,-4364, 200, now(), 0, 0);
+insert into position values (40962, 0,-4391,-2695, 200, now(), 0, 0);
+insert into position values (40963, 0,-4411,-593, 200, now(), 0, 0);
+insert into position values (40964, 0,-2414,-293, 200, now(), 0, 0);
+insert into position values (40965, 0,-530,-301, 200, now(), 0, 0);
+insert into position values (40966, 0,-340,-1795, 200, now(), 0, 0);
+insert into position values (40967, 0,-553,-4373, 200, now(), 0, 0);
+insert into position values (40968, 0,-2394,-4377, 200, now(), 0, 0);
+insert into position values (40969, 0,-2470,2015, 200, now(), 0, 0);
+insert into position values (40970, 0,-502,2730, 200, now(), 0, 0);
+insert into position values (40971, 0,-1697,2646, 200, now(), 0, 0);
+insert into position values (40972, 0,234,553, 200, now(), 0, 0);
+insert into position values (40973, 0,229,2355, 200, now(), 0, 0);
+insert into position values (40974, 0,237,4372, 200, now(), 0, 0);
+insert into position values (40975, 0,2296,4386, 200, now(), 0, 0);
+insert into position values (40976, 0,4375,4372, 200, now(), 0, 0);
+insert into position values (40977, 0,4383,2360, 200, now(), 0, 0);
+insert into position values (40978, 0,4387,596, 200, now(), 0, 0);
+insert into position values (40979, 0,2363,543, 200, now(), 0, 0);
+insert into position values (40980, 0,2328,2266, 200, now(), 0, 0);
+insert into position values (40983, 0,-488,1558, 200, now(), 0, 0);
+insert into position values (40984, 0,-2366,3191, 200, now(), 0, 0);
+insert into position values (40985, 0,4380,-4371, 200, now(), 0, 0);
+insert into position values (40986, 0,2433,-4365, 200, now(), 0, 0);
+insert into position values (40987, 0,-728,3565, 200, now(), 0, 0);
+insert into position values (40988, 0,-1374,1536, 200, now(), 0, 0);
+insert into position values (40989, 0,-1645,4145, 200, now(), 0, 0);
+insert into position values (40990, 0,4397,-1682, 200, now(), 0, 0);
+
+

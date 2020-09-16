@@ -412,11 +412,11 @@ def planActions():
     if hasattr(cfg, 'testUWB'):
         if cfg.testUWB == 1:
             loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Uwb)
-            loposPy.insertTodo(0xA009, 0x38, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
-            testUWB(0xA009, 0xA014)
-            testUWB(0xA014, 0xA009)
-            loposPy.insertTodo(0xA001, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
-            loposPy.insertTodo(0xA002, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            #loposPy.insertTodo(0xA009, 0x38, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            #testUWB(0xA009, 0xA014)
+            #testUWB(0xA014, 0xA009)
+            #loposPy.insertTodo(0xA001, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            #loposPy.insertTodo(0xA002, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
             #loposPy.insertTodo(0xA002, 0x38, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
             #testUWB(0xA002, 0xA001)
             #testUWB(0xA001, 0xA002)

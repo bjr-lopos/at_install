@@ -1,6 +1,5 @@
 delete from position where addr&0xFF00 = 0xa000;
 
-
 insert into position values (40960, 0,-2399,-2257, 200, now(), 0, 0);
 insert into position values (40961, 0,-4381,-4364, 200, now(), 0, 0);
 insert into position values (40962, 0,-4391,-2695, 200, now(), 0, 0);
@@ -25,10 +24,29 @@ insert into position values (40980, 0,2328,2266, 200, now(), 0, 0);
 insert into position values (40983, 0,-488,1558, 200, now(), 0, 0);
 insert into position values (40984, 0,-2366,3191, 200, now(), 0, 0);
 insert into position values (40985, 0,4380,-4371, 200, now(), 0, 0);
-insert into position values (40986, 0,2433,-4365, 200, now(), 0, 0);
+insert into position values (40986, 0,-2649,2178, 200, now(), 0, 0);
 insert into position values (40987, 0,-728,3565, 200, now(), 0, 0);
 insert into position values (40988, 0,-1374,1536, 200, now(), 0, 0);
 insert into position values (40989, 0,-1645,4145, 200, now(), 0, 0);
 insert into position values (40990, 0,4397,-1682, 200, now(), 0, 0);
-
+insert into position values (40991, 0,1544,-2654, 200, now(), 0, 0);
+insert into position values (40992, 0,2184,-3386, 200, now(), 0, 0);
+insert into position values (40993, 0,928,-3795, 200, now(), 0, 0);
+insert into position values (40994, 0,580,-2690, 200, now(), 0, 0);
+insert into position values (40995, 0,2254,-2246, 200, now(), 0, 0);
+insert into position values (40996, 0,1643,-1467, 200, now(), 0, 0);
+insert into position values (40997, 0,858,-1576, 200, now(), 0, 0);
+insert into position values (40998, 0,3541,-2472, 200, now(), 0, 0);
+insert into position values (40999, 0,4031,-2458, 200, now(), 0, 0);
+insert into position values (41000, 0,4013,-3163, 200, now(), 0, 0);
+insert into position values (41001, 0,3994,-3635, 200, now(), 0, 0);
+insert into position values (41002, 0,2572,-3199, 200, now(), 0, 0);
+insert into position values (41003, 0,2714,-1766, 200, now(), 0, 0);
+insert into position values (41004, 0,4062,-1813, 200, now(), 0, 0);
+insert into position values (41005, 0,-3243,1515, 200, now(), 0, 0);
+insert into position values (41006, 0,-3202,2762, 200, now(), 0, 0);
+insert into position values (41007, 0,-2586,1033, 200, now(), 0, 0);
+insert into position values (41008, 0,-3245,563, 200, now(), 0, 0);
+insert into position values (41009, 0,-3907,980, 200, now(), 0, 0);
+insert into position values (41010, 0,-4132,1754, 200, now(), 0, 0);
 

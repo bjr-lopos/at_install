@@ -309,7 +309,7 @@ def checkForSchedules(table, scenario, _reqScheduleCB = None):
                 else DATE_ADD(ref.last_update, INTERVAL p.interval SECOND) 
             end as schedule,
             CASE 
-                WHEN ref.last_update IS NULL THEN (round(p.interval * 0.5 * (1 + rand())))
+                WHEN ref.last_update IS NULL THEN (round(100 * 0.5 * (1 - rand())))
                 else TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval
             end as diff
         FROM 

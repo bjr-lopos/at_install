@@ -5,8 +5,8 @@
                 else DATE_ADD(ref.last_update, INTERVAL p.interval SECOND)
             end as schedule,
             CASE
-                WHEN ref.last_update IS NULL THEN p.interval/2
-                else TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval
+                WHEN ref.last_update IS NULL THEN (round(100 * 0.5 * (1 - rand())))
+                else round( 100* (TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval) / p.interval)
             end as diff
         FROM
             sys,

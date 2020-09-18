@@ -1,13 +1,13 @@
--- MySQL dump 10.13  Distrib 5.7.30, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.21, for Linux (x86_64)
 --
 -- Host: localhost    Database: lopos_test
 -- ------------------------------------------------------
--- Server version	5.7.30-0ubuntu0.18.04.1
+-- Server version	8.0.21-0ubuntu0.20.04.4
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
@@ -41,8 +41,9 @@ DROP TABLE IF EXISTS `cell`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `cell` (
-  `core` int(4) NOT NULL,
-  `edge` int(4) NOT NULL,
+  `core` int NOT NULL,
+  `edge` int NOT NULL,
+  `group` int DEFAULT NULL,
   PRIMARY KEY (`core`,`edge`),
   KEY `index1` (`core`),
   KEY `fk_cell_2_idx` (`edge`),
@@ -333,8 +334,9 @@ DROP TABLE IF EXISTS `tag`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tag` (
-  `id` int(4) NOT NULL AUTO_INCREMENT,
-  `addr` int(5) NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `addr` int NOT NULL,
+  `group` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `addr_UNIQUE` (`addr`),

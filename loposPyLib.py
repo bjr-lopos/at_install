@@ -298,6 +298,8 @@ def requestAnchorPerCell(core, max, _reqAnchorCellCB = None):
 
 
 #every planned scenario has a result table, we will search for devices which have an overdue scenario
+#WHEN ref.last_update IS NULL THEN p.interval/2 
+
 def checkForSchedules(table, scenario, _reqScheduleCB = None):
     sql = """
         SELECT 
@@ -307,7 +309,7 @@ def checkForSchedules(table, scenario, _reqScheduleCB = None):
                 else DATE_ADD(ref.last_update, INTERVAL p.interval SECOND) 
             end as schedule,
             CASE 
-                WHEN ref.last_update IS NULL THEN p.interval/2
+                WHEN ref.last_update IS NULL THEN (round(p.interval * 0.5 * (1 + rand())))
                 else TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval
             end as diff
         FROM 

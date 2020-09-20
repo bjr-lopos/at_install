@@ -191,6 +191,31 @@ def scheduleTdoaCB(addr, last, overdue):
         except KeyError:
                 tagPerCoreCell[core] = [addr]   
 
+
+def scheduleTdoaGroupsCB(addr, last, overdue):
+    #print("scheduleTdoaCB: " + hex(addr) + " "+ last + " "+ str(overdue) )
+    tagInfo = loposPy.isTagActive(addr)
+    if (tagInfo is None): 
+        return
+    grp =  tagInfo[1]
+    core = tagInfo[2]
+    if (last == 0) or (overdue > 96) or (core == -1) : 
+        cellsPerGroup = loposPy.getCellsPerGroupActive(grp)
+        coreIdx = 0
+        if (core != -1): 
+            coreIdx = cellsPerGroup.index(core)
+            coreIdx = coreIdx + 1
+            if (coreIdx >= len(cellsPerGroup)):
+                coreIdx = 0
+            loposPy.updateTag(addr, core)
+        core = cellsPerGroup[coreIdx]
+    global tagPerCoreCell
+    try:
+        tagPerCoreCell[core].append(addr)
+    except KeyError:
+        tagPerCoreCell[core] = [addr]   
+
+
 def processTagPerCoreCell() :
     global tagPerCoreCell
     global tdoa_ActorCnt
@@ -227,7 +252,7 @@ def processTagPerCoreCell() :
 
 
 def scheduleTDoA():
-    print("Schedule TDoA reports: ")
+    print("Schedule TDoA reports based on location or discovery: ")
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Discover)    
     global disc_ActorCnt
@@ -261,6 +286,17 @@ def scheduleTDoAAlt():
     alt_tdoa_iter += 1
     if alt_tdoa_iter >= (17*len(cfg.tagPerCoreCellFixed)):
         alt_tdoa_iter = 0
+
+
+def scheduleTDoAgroups():
+    print("Schedule TDoA reports based on group info: ")
+    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
+    loposPy.updateActiveTags(500) 
+
+    global tagPerCoreCell
+    tagPerCoreCell.clear()
+    loposPy.checkForSchedules("position", cfg.LOPOS_SCENARIO_TDoA, scheduleTdoaGroupsCB)
+    processTagPerCoreCell()
 
 
 def uwbInfoAllCells():
@@ -375,10 +411,13 @@ def planActions():
     if hasattr(cfg, 'altIUwbInfolvoScan'):
         altIUwbInfolvoScan()
 
-    if hasattr(cfg, 'tagPerCoreCellFixed'):
-        scheduleTDoAAlt()
-    else:
-        scheduleTDoA()
+    if hasattr(cfg, 'scheduleTDoAwGroups'):
+        scheduleTDoAgroups()
+    else: 
+        if hasattr(cfg, 'tagPerCoreCellFixed'):
+            scheduleTDoAAlt()
+        else:
+            scheduleTDoA()
 
     scheduleAccel()
     scheduleStats()
@@ -445,6 +484,7 @@ def on_message(client, userdata, message):
         planActions()
 
 loposPy.initDB()
+loposPy.updateCellsPerGroup()
 loposPy.getPositionCoreAnchors()
 mqtt_broker = '127.0.0.1'
 client = mqtt.Client() #create new instance

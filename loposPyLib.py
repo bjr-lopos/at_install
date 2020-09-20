@@ -19,6 +19,8 @@ mycursor = None
 positionAnchor = {}
 positionCoreAnchor = {}
 positionTag = {}
+activeTag = {}
+cellsPerGroup = {}
 discoveredTag = {} 
 sqlInstantCommit = 1
 
@@ -223,6 +225,96 @@ def getPositionTags():
         age=pos[4]
         positionTag[addr] = [x,y,z,age]
 
+def updateActiveTags(age):
+    global activeTag
+    #activeTag.clear()
+    sql="""
+        select 
+            s.addr as addr, 
+            timestampdiff(second, max(updated), now()) as diff, 
+            t.group as grp 
+        from 
+            stat as s,
+            tag as t 
+        where 
+            t.addr=s.addr and 
+            timestampdiff(second, updated, now()) < %(age)s
+        group by 
+            s.addr
+        order by 1
+    """
+    records = wrappedSql(sql, {'age':age})
+    if records is None:
+        return
+    for tag in records:
+        addr=tag[0]
+        diff=tag[1]
+        grp=tag[2]
+        lastTagInfo =  positionTag.get(addr)
+        lastCell = -1
+        if (lastTagInfo is not None):
+            lastCell = lastTagInfo[2]
+        activeTag[addr] = [diff, grp, lastCell]
+
+
+def isTagActive(addr):
+    return activeTag.get(addr)    
+
+def updateTag(addr, lastCell):
+    lastTagInfo =  positionTag.get(addr)
+    diff=lastTagInfo[0]
+    grp=lastTagInfo[1]
+    activeTag[addr] = [diff, grp, lastCell]
+
+
+def updateCellsPerGroup():
+    global cellsPerGroup
+    cellsPerGroup.clear()
+    sql="""
+        select 
+            1, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 1 = 1
+    UNION
+        select 
+            2, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 2 = 2
+    UNION
+        select 
+            3, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 4 = 4
+    UNION
+        select 
+            4, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 8 = 8
+    order by 1;
+    """
+    records = wrappedSql(sql, {})
+    if records is None:
+        return
+    for cell in records:
+        grp=cell[0]
+        core=cell[1]
+        try:
+            cellsPerGroup[grp].append(core)
+        except KeyError:
+            cellsPerGroup[grp] = [core]
+
+def getCellsPerGroupActive(grp):
+    return cellsPerGroup.get(grp)    
+
+
 def findCloseCore(dev, maxage):
     global positionCoreAnchor
     global positionTag
@@ -302,7 +394,7 @@ def requestAnchorPerCell(core, max, _reqAnchorCellCB = None):
 
 def checkForSchedules(table, scenario, _reqScheduleCB = None):
     sql = """
-        SELECT 
+        SELECT
             p.addr, 
             CASE 
                 WHEN ref.last_update IS NULL THEN 0 

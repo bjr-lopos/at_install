@@ -271,7 +271,7 @@ def isTagActive(addr):
     return activeTag.get(addr)    
 
 def updateTag(addr, lastCell):
-    tagInfo =  positionTag.get(addr)
+    tagInfo =  activeTag.get(addr)
     diff=tagInfo[0]
     grp=tagInfo[1]
     activeTag[addr] = [diff, grp, lastCell]

@@ -264,6 +264,7 @@ def updateActiveTags(maxAge):
             lastCell = tagInfo[2]
         activeTag[addr] = [age, grp, lastCell]
     print("updateActiveTags", sorted(activeTag.items()));        
+    print("Len dict activeTag: ", len(activeTag));        
 
 
 def isTagActive(addr):

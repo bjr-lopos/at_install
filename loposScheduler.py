@@ -207,8 +207,8 @@ def scheduleTdoaGroupsCB(addr, last, overdue):
             coreIdx = coreIdx + 1
             if (coreIdx >= len(cellsPerGroup)):
                 coreIdx = 0
-            loposPy.updateTag(addr, core)
         core = cellsPerGroup[coreIdx]
+        loposPy.updateTag(addr, core)
     global tagPerCoreCell
     try:
         tagPerCoreCell[core].append(addr)
@@ -291,7 +291,7 @@ def scheduleTDoAAlt():
 def scheduleTDoAgroups():
     print("Schedule TDoA reports based on group info: ")
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
-    loposPy.updateActiveTags(500) 
+    loposPy.updateActiveTags(900) 
 
     global tagPerCoreCell
     tagPerCoreCell.clear()

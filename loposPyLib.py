@@ -225,45 +225,53 @@ def getPositionTags():
         age=pos[4]
         positionTag[addr] = [x,y,z,age]
 
-def updateActiveTags(age):
+def updateActiveTags(maxAge):
     global activeTag
-    #activeTag.clear()
     sql="""
         select 
             s.addr as addr, 
-            timestampdiff(second, max(updated), now()) as diff, 
+            timestampdiff(second, max(updated), now()) as age, 
             t.group as grp 
         from 
             stat as s,
             tag as t 
         where 
             t.addr=s.addr and 
-            timestampdiff(second, updated, now()) < %(age)s
+            timestampdiff(second, updated, now()) < %(maxAge)s
         group by 
             s.addr
         order by 1
     """
-    records = wrappedSql(sql, {'age':age})
+    
+    #activeTag.clear()
+    for addr in activeTag.keys():
+        tagInfo = activeTag.get(addr)
+        age=-1
+        grp=tagInfo[1]
+        lastCell = tagInfo[2]
+        activeTag[addr] = [age, grp, lastCell]
+
+    records = wrappedSql(sql, {'maxAge':maxAge})
     if records is None:
         return
     for tag in records:
         addr=tag[0]
-        diff=tag[1]
+        age=tag[1]
         grp=tag[2]
-        lastTagInfo =  positionTag.get(addr)
         lastCell = -1
-        if (lastTagInfo is not None):
-            lastCell = lastTagInfo[2]
-        activeTag[addr] = [diff, grp, lastCell]
+        tagInfo =  activeTag.get(addr)
+        if (tagInfo is not None):
+            lastCell = tagInfo[2]
+        activeTag[addr] = [age, grp, lastCell]
 
 
 def isTagActive(addr):
     return activeTag.get(addr)    
 
 def updateTag(addr, lastCell):
-    lastTagInfo =  positionTag.get(addr)
-    diff=lastTagInfo[0]
-    grp=lastTagInfo[1]
+    tagInfo =  positionTag.get(addr)
+    diff=tagInfo[0]
+    grp=tagInfo[1]
     activeTag[addr] = [diff, grp, lastCell]
 
 

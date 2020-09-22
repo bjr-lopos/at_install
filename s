@@ -36,8 +36,8 @@ select
     min(beaconRatio) as minBR,
     round(avg(beaconRatio)) as avgBR,
     max(beaconRatio) as maxBR,
-    ((7 - (min(uwbTxPwr) div 32)) * 3) + ((min(uwbTxPwr) div 2) & 0x00F) as minUP,
-    ((7 - (max(uwbTxPwr) div 32)) * 3) + ((max(uwbTxPwr) div 2) & 0x00F) as maxUP
+    ((7 - (min(uwbTxPwr) div 32)) * 3) + round((min(uwbTxPwr) & 0x01F)/2) as UP1,
+    ((7 - (max(uwbTxPwr) div 32)) * 3) + round((max(uwbTxPwr) & 0x01F)/2) as UP2
 from 
     stat 
 where

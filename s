@@ -9,7 +9,7 @@ echo will use delay $delay
 source $lclDir/local_cfg
 sql=`cat << EndOfMessage
 select
-    hex(addr),
+    hex(addr) as 0xaddr,
     case
         when addr&0xF000 = 0xA000 then "anchor"
         when addr&0xFFF0 = 0xFFF0 then "sink"
@@ -35,7 +35,9 @@ select
     max(drift) as maxDrift,
     min(beaconRatio) as minBR,
     round(avg(beaconRatio)) as avgBR,
-    max(beaconRatio) as maxBR
+    max(beaconRatio) as maxBR,
+    ((7 - (min(uwbTxPwr) div 32)) * 3) + ((min(uwbTxPwr) div 2) & 0x00F) as minUP,
+    ((7 - (max(uwbTxPwr) div 32)) * 3) + ((max(uwbTxPwr) div 2) & 0x00F) as maxUP
 from 
     stat 
 where

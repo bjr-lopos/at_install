@@ -216,6 +216,7 @@ def scheduleTdoaGroupsCB(addr, last, overdue):
         tagPerCoreCell[core] = [addr]   
 
 
+
 def processTagPerCoreCell() :
     global tagPerCoreCell
     global tdoa_ActorCnt
@@ -390,6 +391,20 @@ def altIUwbInfolvoScan():
 					rxA.append(anchors[y+dy,x])
 		analyzeOpportunities(x,y,dx,dy,txA, rxA)
 
+
+def updateUwbTxPwrCB(addr, newUwbTxPwr):
+    setTxPwrVal = 0x22
+    if (newUwbTxPwr > 33) return
+    if (newUwbTxPwr <= 2) return
+    DAcoarse = newUwbTxPwr // 3
+    if (DAcoarse > 6): 
+        DAcoarse = 6
+    setTxPwrVal =  (newUwbTxPwr - (DAcoarse * 3)) * 2
+    if (setTxPwrVal > 31) :
+        setTxPwrVal = 31
+    setTxPwrVal += (6 - DAcoarse) * 32
+    loposPy.insertTodo(addr, setTxPwrVal, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+
 #-----------------------------------------------------------
 #Actions
 #-----------------------------------------------------------
@@ -400,11 +415,13 @@ def planActions():
     now = datetime.now()
     t1=int(round(time.time() * 1000000))
     current_time = now.strftime("%H:%M:%S %B %d %Y")
-    print("Schedule iteration (will clean up old todo): @", current_time)
+    print("Schedule iteration (will clean up old todo): @", current_time)   
     loposPy.wrappedESqlDoCommitAndSetInstant(1)
     loposPy.deleteOldSchedules(2)
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Stat)
     loposPy.wrappedESqlDoCommitAndSetInstant(0)
+
+    loposPy.checkUwbTxPwr()
 
     if hasattr(cfg, 'uwbInfoAllCells'):
         uwbInfoAllCells()

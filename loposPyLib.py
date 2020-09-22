@@ -399,6 +399,34 @@ def requestAnchorPerCell(core, max, _reqAnchorCellCB = None):
             _reqAnchorCellCB(core, edge[0])
 
 
+def checkUwbTxPwr(_reqUpdateUwbTxPwrCB = None):
+    sql = """
+        SELECT
+            d.addr,
+            ((6 - (s.uwbTxPwr div 32)) * 3) + round((s.uwbTxPwr & 0x01F)/2) as isUwbTxPwr,
+            d.uwbTxPower as setUwbTxPwr
+        FROM
+            device as d,
+            stat as s,
+            (select addr, max(updated) as last_update from stat group by addr) as ref
+        WHERE
+            s.addr = d.addr and
+            s.addr = ref.addr and
+            s.updated = ref.last_update and
+            d.uwbTxPower > 0 and
+            d.uwbTxPower <> ((6 - (s.uwbTxPwr div 32)) * 3) + round((s.uwbTxPwr & 0x01F)/2);
+    """
+    records = wrappedSql(sql, {} )
+    for needUwbTxPwrSchedule in records:
+        addr = needUwbTxPwrSchedule[0]
+        newUwbTxPwr = needUwbTxPwrSchedule[2]
+        if _reqUpdateUwbTxPwrCB:
+            #print ("will call cb")
+            _reqUpdateUwbTxPwrCB(addr, newUwbTxPwr)
+
+
+
+
 #every planned scenario has a result table, we will search for devices which have an overdue scenario
 #WHEN ref.last_update IS NULL THEN p.interval/2 
 

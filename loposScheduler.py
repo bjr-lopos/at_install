@@ -423,7 +423,7 @@ def planActions():
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Stat)
     loposPy.wrappedESqlDoCommitAndSetInstant(0)
 
-    loposPy.checkUwbTxPwr()
+    loposPy.checkUwbTxPwr(updateUwbTxPwrCB)
 
     if hasattr(cfg, 'uwbInfoAllCells'):
         uwbInfoAllCells()

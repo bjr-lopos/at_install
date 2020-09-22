@@ -394,8 +394,10 @@ def altIUwbInfolvoScan():
 
 def updateUwbTxPwrCB(addr, newUwbTxPwr):
     setTxPwrVal = 0x22
-    if (newUwbTxPwr > 33) return
-    if (newUwbTxPwr <= 2) return
+    if (newUwbTxPwr > 33):
+         return
+    if (newUwbTxPwr <= 2):
+         return
     DAcoarse = newUwbTxPwr // 3
     if (DAcoarse > 6): 
         DAcoarse = 6

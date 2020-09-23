@@ -116,7 +116,7 @@ def calculateAndPlotPosition(jsondata):
         numHyperbola = numHyperbola + 1
 
     if (numHyperbola < 3): 
-        print("Error asn:",ASNid//512, ":", ASNid%512, " dev:", DEVid," nH: ",numHyperbola)
+        print("Error asn:",ASNid//512, ":", ASNid%512, " dev:", DEVid," nH: ",numHyperbola, ," sync: ",anchorSync)
         return
     startGuess = (anchorPosition[anchorSync,0], anchorPosition[anchorSync,1])
     if ( (DEVid & 0xF000) == 0x1000 ):

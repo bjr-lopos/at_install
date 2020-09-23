@@ -116,7 +116,7 @@ def calculateAndPlotPosition(jsondata):
         numHyperbola = numHyperbola + 1
 
     if (numHyperbola < 3): 
-        print("Error asn:",ASNid//512, ":", ASNid%512, " dev:", DEVid," nH: ",numHyperbola)
+        print("Error asn:",ASNid//512, ":", ASNid%512, " dev:", DEVid," nH: ",numHyperbola ," sync: ",anchorSync)
         return
     startGuess = (anchorPosition[anchorSync,0], anchorPosition[anchorSync,1])
     if ( (DEVid & 0xF000) == 0x1000 ):
@@ -154,23 +154,28 @@ def calculateAndPlotPosition(jsondata):
         method='trf',
         bounds=bnds)
     t2=int(round(time.time() * 1000000))
+    resX= result[0][0]
+    resY= result[0][1]
     jsonObj = {
         "asnHF":ASNid//512,
         "asnSF":ASNid%512,
         "dev":DEVid,
-        "x":round(result[0][0], 1),
-        "y":round(result[0][1], 1),
+        "x":round(resX, 1),
+        "y":round(resY, 1),
         "z":tagz,
         "t":t2-t1,
         "nH":numHyperbola
 #        "perr":np.sqrt(np.diag(pcov))
     }
-    sql="insert into position (addr, asn, x, y, z, numHyperbola, numPyTime) values (%s,%s,%s,%s,%s,%s,%s)"
-    val=( DEVid, ASNid, int(round(result[0][0])), int(round(result[0][1])), int(round(tagz)), numHyperbola, t2-t1)
-    if ( (DEVid & 0xF000) == 0x1000 ):
-        tagID = DEVid & 0x0FFF
-        tagPosition[tagID] = [result[0][0], result[0][1]]
     print(jsonObj)
+    if ( ((DEVid & 0xF000) == 0x1000 ) and (abs(resX) < 4500) and (abs(resY) < 4500)):
+        tagID = DEVid & 0x0FFF
+        tagPosition[tagID] = [resX, resY]
+    else:
+        print("Error will drop this result!")
+        return
+    sql="insert into position (addr, asn, x, y, z, numHyperbola, numPyTime) values (%s,%s,%s,%s,%s,%s,%s)"
+    val=( DEVid, ASNid, int(round(resX)), int(round(resY)), int(round(tagz)), numHyperbola, t2-t1)
     #print(sql, val)
     try:
         mycursor.execute(sql, val)

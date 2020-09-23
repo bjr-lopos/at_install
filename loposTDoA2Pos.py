@@ -116,7 +116,7 @@ def calculateAndPlotPosition(jsondata):
         numHyperbola = numHyperbola + 1
 
     if (numHyperbola < 3): 
-        print("Error asn:",ASNid, " dev:", DEVid," nH: ",numHyperbola)
+        print("Error asn:",ASNid//512, ":", ASNid%512, " dev:", DEVid," nH: ",numHyperbola)
         return
     startGuess = (anchorPosition[anchorSync,0], anchorPosition[anchorSync,1])
     if ( (DEVid & 0xF000) == 0x1000 ):
@@ -146,7 +146,7 @@ def calculateAndPlotPosition(jsondata):
     #to be defined
     bnds=((Xmin, Ymin), (Xmax, Ymax))
     t1=int(round(time.time() * 1000000))
-    result, pcov = optimization.curve_fit(
+    result = optimization.curve_fit(
         func_curvefit,
         (AnchorsAx,AnchorsAy,AnchorsAz,AnchorsBx,AnchorsBy,AnchorsBz), 
         DDoAValues, 
@@ -155,14 +155,15 @@ def calculateAndPlotPosition(jsondata):
         bounds=bnds)
     t2=int(round(time.time() * 1000000))
     jsonObj = {
-        "asn":ASNid,
+        "asnHF":ASNid//512,
+        "asnSF":ASNid%512,
         "dev":DEVid,
         "x":round(result[0][0], 1),
         "y":round(result[0][1], 1),
         "z":tagz,
         "t":t2-t1,
-        "nH":numHyperbola,
-        "perr":np.sqrt(np.diag(pcov))
+        "nH":numHyperbola
+#        "perr":np.sqrt(np.diag(pcov))
     }
     sql="insert into position (addr, asn, x, y, z, numHyperbola, numPyTime) values (%s,%s,%s,%s,%s,%s,%s)"
     val=( DEVid, ASNid, int(round(result[0][0])), int(round(result[0][1])), int(round(tagz)), numHyperbola, t2-t1)

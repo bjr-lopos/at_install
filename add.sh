@@ -23,7 +23,7 @@ interval=320
 if [ ! -z "$2" ]; then
     interval=$2
 fi
-devsql=`printf "insert into device values (%d, \"$profile%d\", 3, now());" $id $1`
+devsql=`printf "insert into device values (%d, \"$profile%d\", 3, now(),0);" $id $1`
 plansql=`printf "insert into plan values (%d, 12, $interval);" $id`
 echo $devsql $plansql
 echo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$devsql"

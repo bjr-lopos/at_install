@@ -1,0 +1,14 @@
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xFFF0, 201, 7, 0, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA000, 201, 7, 1, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA001, 201, 7, 2, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA002, 201, 7, 3, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA003, 201, 7, 4, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA004, 201, 7, 5, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA005, 201, 7, 6, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA006, 201, 7, 7, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA007, 201, 7, 8, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA008, 201, 7, 9, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xFFF0, 202, 7, 0, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA009, 202, 7, 1, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0xA00A, 202, 7, 2, 0, 0, 0);
+insert into todo (addr, scheduleAT, scenario, actor, active, persistent, repeatSlots) values (0x1001, 202, 7, 3, 0, 0, 0);

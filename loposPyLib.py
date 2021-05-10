@@ -1,6 +1,6 @@
 #pip3 install paho-mqtt python-etcd
 #pip3 install mysql-connector-python-rf
-#python3 -m pip install mysql-connector
+#python3 -m pip install mysql-connector-python
 
 import sys
 import time
@@ -19,6 +19,8 @@ mycursor = None
 positionAnchor = {}
 positionCoreAnchor = {}
 positionTag = {}
+activeTag = {}
+cellsPerGroup = {}
 discoveredTag = {} 
 sqlInstantCommit = 1
 
@@ -29,7 +31,8 @@ def initDB():
         host=cfg.mysql["host"], 
         user=cfg.mysql["user"], 
         passwd=cfg.mysql["passwd"], 
-        database=cfg.mysql["db"]
+        database=cfg.mysql["db"],
+        auth_plugin='mysql_native_password'        
     )
     #print(mydb)
     mycursor = mydb.cursor()
@@ -75,6 +78,11 @@ def cleanupSFid(scheduleAT):
 def cleanupScenario(scenario):
     sql="delete from todo where scenario=%(scenario)s"
     wrappedESql(sql, {'scenario':scenario} )
+
+
+def cleanupScenarioActor(scenario, actor):
+    sql="delete from todo where scenario=%(scenario)s and actor=%(actor)s"
+    wrappedESql(sql, {'scenario':scenario, 'actor':actor} )
 
 def cleanupScenarioActor4dev(scenario, actor, addr):
     sql="delete from todo where addr=%(addr)s and scenario=%(scenario)s and actor=%(actor)s"
@@ -136,12 +144,19 @@ def getPositionCoreAnchors():
         addr=core[4]
         positionCoreAnchor[id]=[x, y, z,addr]
 
-def getNumCorAnchors():
+def getNumCoreAnchors():
     return len(positionCoreAnchor)
+
+def getCoreAnchors():
+    return positionCoreAnchor.keys()
 
 def localizeDiscoverTags(age, minRxPow):
     global discoveredTag
     discoveredTag.clear()
+    #create index uwbstat_devRx on uwbstat (devRx); 
+    #create index uwbstat_devTx on uwbstat (devTx); 
+    #create index pos_addr on position (addr);
+    #create index uwbstat_upd_desc on uwbstat (updated desc);
     sql="""
         select 
             devTx, 
@@ -163,13 +178,9 @@ def localizeDiscoverTags(age, minRxPow):
                     else 0
                 end as weight
             FROM 
-                uwbstat as u, position as p
+                uwbstat as u left join position as p on u.devRx = p.addr
             where 
                 TIMESTAMPDIFF(SECOND,u.updated,now()) < %(age)s
-                and
-                u.devRx = p.addr
-                and 
-                p.asn = 0
             )
             as wu
         group by devTx
@@ -213,6 +224,106 @@ def getPositionTags():
         z=pos[3]
         age=pos[4]
         positionTag[addr] = [x,y,z,age]
+
+def updateActiveTags(maxAge):
+    global activeTag
+    sql="""
+        select 
+            s.addr as addr, 
+            timestampdiff(second, max(updated), now()) as age, 
+            t.group as grp 
+        from 
+            stat as s,
+            tag as t 
+        where 
+            t.addr=s.addr and 
+            timestampdiff(second, updated, now()) < %(maxAge)s
+        group by 
+            s.addr
+        order by 1
+    """
+
+    #activeTag.clear()
+    for addr in activeTag.keys():
+        tagInfo = activeTag.get(addr)
+        age=-1
+        grp=tagInfo[1]
+        lastCell = tagInfo[2]
+        activeTag[addr] = [age, grp, lastCell]
+
+    records = wrappedSql(sql, {'maxAge':maxAge})
+    if records is None:
+        return
+    for tag in records:
+        addr=tag[0]
+        age=tag[1]
+        grp=tag[2]
+        lastCell = -1
+        tagInfo =  activeTag.get(addr)
+        if (tagInfo is not None):
+            lastCell = tagInfo[2]
+        activeTag[addr] = [age, grp, lastCell]
+    #print("updateActiveTags", sorted(activeTag.items()))        
+    print("Len dict activeTag: ", len(activeTag))        
+
+
+def isTagActive(addr):
+    return activeTag.get(addr)    
+
+def updateTag(addr, lastCell):
+    tagInfo =  activeTag.get(addr)
+    diff=tagInfo[0]
+    grp=tagInfo[1]
+    activeTag[addr] = [diff, grp, lastCell]
+
+
+def updateCellsPerGroup():
+    global cellsPerGroup
+    cellsPerGroup.clear()
+    sql="""
+        select 
+            1, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 1 = 1
+    UNION
+        select 
+            2, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 2 = 2
+    UNION
+        select 
+            3, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 4 = 4
+    UNION
+        select 
+            4, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 8 = 8
+    order by 1;
+    """
+    records = wrappedSql(sql, {})
+    if records is None:
+        return
+    for cell in records:
+        grp=cell[0]
+        core=cell[1]
+        try:
+            cellsPerGroup[grp].append(core)
+        except KeyError:
+            cellsPerGroup[grp] = [core]
+
+def getCellsPerGroupActive(grp):
+    return cellsPerGroup.get(grp)    
+
 
 def findCloseCore(dev, maxage):
     global positionCoreAnchor
@@ -288,18 +399,48 @@ def requestAnchorPerCell(core, max, _reqAnchorCellCB = None):
             _reqAnchorCellCB(core, edge[0])
 
 
+def checkUwbTxPwr(_reqUpdateUwbTxPwrCB = None):
+    sql = """
+        SELECT
+            d.addr,
+            ((6 - (s.uwbTxPwr div 32)) * 3) + round((s.uwbTxPwr & 0x01F)/2) as isUwbTxPwr,
+            d.uwbTxPower as setUwbTxPwr
+        FROM
+            device as d,
+            stat as s,
+            (select addr, max(updated) as last_update from stat group by addr) as ref
+        WHERE
+            s.addr = d.addr and
+            s.addr = ref.addr and
+            s.updated = ref.last_update and
+            d.uwbTxPower > 0 and
+            d.uwbTxPower <> ((6 - (s.uwbTxPwr div 32)) * 3) + round((s.uwbTxPwr & 0x01F)/2);
+    """
+    records = wrappedSql(sql, {} )
+    for needUwbTxPwrSchedule in records:
+        addr = needUwbTxPwrSchedule[0]
+        newUwbTxPwr = needUwbTxPwrSchedule[2]
+        if _reqUpdateUwbTxPwrCB:
+            #print ("will call cb")
+            _reqUpdateUwbTxPwrCB(addr, newUwbTxPwr)
+
+
+
+
 #every planned scenario has a result table, we will search for devices which have an overdue scenario
+#WHEN ref.last_update IS NULL THEN p.interval/2 
+
 def checkForSchedules(table, scenario, _reqScheduleCB = None):
     sql = """
-        SELECT 
+        SELECT
             p.addr, 
             CASE 
                 WHEN ref.last_update IS NULL THEN 0 
                 else DATE_ADD(ref.last_update, INTERVAL p.interval SECOND) 
             end as schedule,
             CASE 
-                WHEN ref.last_update IS NULL THEN p.interval/2
-                else TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval
+                WHEN ref.last_update IS NULL THEN (round(100 * 0.5 * (1 - rand())))
+                else round( 100* (TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval) / p.interval)
             end as diff
         FROM 
             sys,
@@ -334,8 +475,7 @@ SFidxRef=0
 SFrepIdxRef=0
 
 def keepOutRepeatingAndfixedSF(SFid):
-    ##reducedSFoffset = {0:2, 1:1, 2:0, 3:3, 4:2, 5:1, 6:0, 7:3}  
-    reducedSFoffset = {0:4, 1:3, 2:2, 3:1, 4:0, 5:7, 6:6, 7:5}  
+    adjust2allowedOffsets = {0:0, 1:0, 2:6, 3:5, 4:4, 5:3, 6:2, 7:1}  
     if SFid <= cfg.LOPOS_LAST_FIXED_SF:
         SFid = cfg.LOPOS_LAST_FIXED_SF + 1
     if SFid >cfg.LOPOS_LAST_USABLE_SF:
@@ -343,20 +483,19 @@ def keepOutRepeatingAndfixedSF(SFid):
         print("ERROR: Hyperframe !")
         sys.exit()
     blockOfs = SFid % cfg.LOPOS_SF_BLOCK_SIZE
-    SFid += reducedSFoffset[blockOfs]
+    SFid += adjust2allowedOffsets[blockOfs]
     return SFid        
 
 def claimRepeatingAndfixedSF(SFid):
+    adjust2allowedOffsets = {0:2, 1:1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}  
     if SFid <= cfg.LOPOS_LAST_FIXED_SF:
         SFid = cfg.LOPOS_LAST_FIXED_SF + 1
     if SFid >cfg.LOPOS_LAST_USABLE_SF:
         loposPy.deleteOldSchedules(0)
         print("ERROR: Hyperframe overstressed!")
         sys.exit()
-    if SFid % cfg.LOPOS_SF_BLOCK_SIZE <= 2:
-        SFid += 2 - (SFid % cfg.LOPOS_SF_BLOCK_SIZE)
-    if SFid % cfg.LOPOS_SF_BLOCK_SIZE == cfg.LOPOS_SF_BLOCK_SIZE -1:
-        SFid += 3
+    blockOfs = SFid % cfg.LOPOS_SF_BLOCK_SIZE
+    SFid += adjust2allowedOffsets[blockOfs]
     return SFid        
 
 def initSFidxRef():

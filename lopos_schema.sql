@@ -1,13 +1,13 @@
--- MySQL dump 10.13  Distrib 5.7.30, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.21, for Linux (x86_64)
 --
 -- Host: localhost    Database: lopos_test
 -- ------------------------------------------------------
--- Server version	5.7.30-0ubuntu0.18.04.1
+-- Server version	8.0.21-0ubuntu0.20.04.4
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
@@ -41,8 +41,9 @@ DROP TABLE IF EXISTS `cell`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `cell` (
-  `core` int(4) NOT NULL,
-  `edge` int(4) NOT NULL,
+  `core` int NOT NULL,
+  `edge` int NOT NULL,
+  `group` int DEFAULT NULL,
   PRIMARY KEY (`core`,`edge`),
   KEY `index1` (`core`),
   KEY `fk_cell_2_idx` (`edge`),
@@ -274,7 +275,8 @@ CREATE TABLE `position` (
   `numHyperbola` int(3) DEFAULT NULL,
   `numPyTime` int(5) DEFAULT NULL,
   PRIMARY KEY (`addr`,`updated`),
-  KEY `index2` (`updated` desc,`addr`),
+  KEY `pos_addr_upd` (`updated` desc,`addr`),
+  KEY `pos_addr` (`addr`),
   CONSTRAINT `fk_position_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -300,6 +302,7 @@ CREATE TABLE `stat` (
   `sgRxRatio` int(3) NOT NULL DEFAULT '0',
   `uwbTxRatio` int(3) NOT NULL DEFAULT '0',
   `uwbRxRatio` int(3) NOT NULL DEFAULT '0',
+  `uwbTxPwr` int(3) DEFAULT '0',
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`addr`,`updated`),
   KEY `speedup` (`updated` desc,`addr`),
@@ -331,8 +334,9 @@ DROP TABLE IF EXISTS `tag`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tag` (
-  `id` int(4) NOT NULL AUTO_INCREMENT,
-  `addr` int(5) NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `addr` int NOT NULL,
+  `group` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `addr_UNIQUE` (`addr`),
@@ -438,6 +442,9 @@ CREATE TABLE `uwbstat` (
   PRIMARY KEY (`devTx`,`devRx`,`asn`),
   KEY `fk_uwbstat_2_idx` (`devRx`),
   KEY `speedup` (`updated` desc,`devTx`),
+  KEY `uwbstat_devRx` (`devRx`),
+  KEY `uwbstat_devTx` (`devTx`),
+  KEY `uwbstat_upd_desc` (`updated`),
   CONSTRAINT `fk_uwbstat_1` FOREIGN KEY (`devTx`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `fk_uwbstat_2` FOREIGN KEY (`devRx`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -486,4 +493,4 @@ CREATE TABLE `version` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-06-23 15:38:56
+-- Dump completed on 2020-07-14 10:46:51

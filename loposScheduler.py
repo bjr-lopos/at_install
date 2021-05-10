@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #pip3 install paho-mqtt python-etcd
 #pip3 install mysql-connector-python-rf
-#python3 -m pip install mysql-connector
+#python3 -m pip install mysql-connector-python
 
 import time
 from datetime import datetime
@@ -11,6 +11,8 @@ import mysql.connector
 import functools
 import loposPyLib as loposPy
 import localConfig as cfg
+import numpy as np
+
 
 print = functools.partial(print, flush=True)
 
@@ -21,6 +23,9 @@ disc_ActorCnt=0
 disc_SFidx=0
 tdoa_ActorCnt=0
 tdoa_SFidx=0
+uwb_ActorCnt = 0
+uwb_SFidx = 0
+
 alt_tdoa_iter = 0
 
 tagPerCoreCell = {} 
@@ -42,13 +47,12 @@ def testTDoA():
     SFidx = loposPy.getNextSFidxRef()
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
     loposPy.insertTodo(0xFFF0, SFidx, cfg.LOPOS_SCENARIO_TDoA, 0, 0, 0)
-    loposPy.insertTodo(0xA000, SFidx, cfg.LOPOS_SCENARIO_TDoA, 1, 0, 0)
-    loposPy.insertTodo(0xA01E, SFidx, cfg.LOPOS_SCENARIO_TDoA, 2, 0, 0)
-    loposPy.insertTodo(0xA009, SFidx, cfg.LOPOS_SCENARIO_TDoA, 3, 0, 0)
-    loposPy.insertTodo(0x1001, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 0, 0, 0)
-    loposPy.insertTodo(0x1002, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 1, 0, 0)
-    loposPy.insertTodo(0x1004, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 2, 0, 0)
-    loposPy.insertTodo(0x1064, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 2, 0, 0)
+    loposPy.insertTodo(0xA009, SFidx, cfg.LOPOS_SCENARIO_TDoA, 1, 0, 0)
+    loposPy.insertTodo(0xA014, SFidx, cfg.LOPOS_SCENARIO_TDoA, 2, 0, 0)
+    loposPy.insertTodo(0xA01F, SFidx, cfg.LOPOS_SCENARIO_TDoA, 3, 0, 0)
+    loposPy.insertTodo(0x1029, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 0, 0, 0)
+    loposPy.insertTodo(0x1032, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 1, 0, 0)
+    loposPy.insertTodo(0x1080, SFidx, cfg.LOPOS_SCENARIO_TDoA, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS + 2, 0, 0)
 
 def testAccel(dev): 
     print("Schedule testAccel: ")
@@ -66,21 +70,28 @@ def testAnchor(addr):
         #loposPy.insertTodo(addr, i*(256/numSlots)+6, cfg.LOPOS_SCENARIO_System, 2, 0, 0)
         loposPy.insertTodo(addr, i*80+6, cfg.LOPOS_SCENARIO_System, 2, 0, 0)
 
-def testDiscover(anchor, dev): 
+def testSinkStress(addr): 
+    print("Schedule sinkStress: ")
+    numSlots = 120
+    for i in range(numSlots):    
+        stats_SFidx = loposPy.getNextSFrepIdxRef()
+        loposPy.insertTodo(0xFFF0, stats_SFidx, cfg.LOPOS_SCENARIO_Stat, 0, 0, 0)
+        #loposPy.insertTodo(addr,   stats_SFidx + 0, cfg.LOPOS_SCENARIO_Stat, 12, 0, 0)
+
+
+def testDiscover(devRx, devTx): 
     print("Schedule discover: ")
     SFcnt = loposPy.getNextSFidxRef()
-    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Discover)
     loposPy.insertTodo(0xFFF0, SFcnt, cfg.LOPOS_SCENARIO_Discover, 0, 0, 0)
-    loposPy.insertTodo(anchor, SFcnt, cfg.LOPOS_SCENARIO_Discover, 1, 0, 0)
-    loposPy.insertTodo(dev, SFcnt, cfg.LOPOS_SCENARIO_Discover, cfg.LOPOS_SCENARIO_Discover_TAG_OFS + 0, 0, 0)
+    loposPy.insertTodo(devRx, SFcnt, cfg.LOPOS_SCENARIO_Discover, 1, 0, 0)
+    loposPy.insertTodo(devTx, SFcnt, cfg.LOPOS_SCENARIO_Discover, cfg.LOPOS_SCENARIO_Discover_TAG_OFS + 0, 0, 0)
 
-def testUWB(anchor, dev): 
+def testUWB(devRx, devTx): 
     print("Schedule UWB: ")
     SFcnt = loposPy.getNextSFidxRef()
-    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Uwb)
     loposPy.insertTodo(0xFFF0, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 0, 0, 0)
-    loposPy.insertTodo(anchor, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 1, 0, 0)
-    loposPy.insertTodo(dev, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 9, 0, 0)
+    loposPy.insertTodo(devRx, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 1, 0, 0)
+    loposPy.insertTodo(devTx, SFcnt, cfg.LOPOS_SCENARIO_Uwb, 9, 0, 0)
 
 def scheduleStatsCB(addr, last, overdue):
     global stats_ActorCnt
@@ -143,6 +154,11 @@ def discReqAnchorCellCB(core, edge):
     loposPy.insertTodo(edge, disc_SFidx,  cfg.LOPOS_SCENARIO_Discover, disc_ActorCnt, 0, 0)
     disc_ActorCnt +=1
 
+def uwbinfoReqAnchorCellCB(core, edge):
+    global uwb_ActorCnt
+    global uwb_SFidx
+    loposPy.insertTodo(edge, uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+    uwb_ActorCnt +=1
 
 def tdoaReqAnchorCellCB(core, edge):
     global tdoa_ActorCnt
@@ -174,6 +190,32 @@ def scheduleTdoaCB(addr, last, overdue):
                 tagPerCoreCell[core].append(addr)
         except KeyError:
                 tagPerCoreCell[core] = [addr]   
+
+
+def scheduleTdoaGroupsCB(addr, last, overdue):
+    #print("scheduleTdoaCB: " + hex(addr) + " "+ last + " "+ str(overdue) )
+    tagInfo = loposPy.isTagActive(addr)
+    if (tagInfo is None): 
+        return
+    grp =  tagInfo[1]
+    core = tagInfo[2]
+    if (last == 0) or (overdue > 96) or (core == -1) : 
+        cellsPerGroup = loposPy.getCellsPerGroupActive(grp)
+        coreIdx = 0
+        if (core != -1): 
+            coreIdx = cellsPerGroup.index(core)
+            coreIdx = coreIdx + 1
+            if (coreIdx >= len(cellsPerGroup)):
+                coreIdx = 0
+        core = cellsPerGroup[coreIdx]
+        loposPy.updateTag(addr, core)
+    global tagPerCoreCell
+    try:
+        tagPerCoreCell[core].append(addr)
+    except KeyError:
+        tagPerCoreCell[core] = [addr]   
+
+
 
 def processTagPerCoreCell() :
     global tagPerCoreCell
@@ -211,7 +253,7 @@ def processTagPerCoreCell() :
 
 
 def scheduleTDoA():
-    print("Schedule TDoA reports: ")
+    print("Schedule TDoA reports based on location or discovery: ")
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Discover)    
     global disc_ActorCnt
@@ -246,6 +288,125 @@ def scheduleTDoAAlt():
     if alt_tdoa_iter >= (17*len(cfg.tagPerCoreCellFixed)):
         alt_tdoa_iter = 0
 
+
+def scheduleTDoAgroups():
+    print("Schedule TDoA reports based on group info: ")
+    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
+    loposPy.updateActiveTags(900) 
+
+    global tagPerCoreCell
+    tagPerCoreCell.clear()
+    loposPy.checkForSchedules("position", cfg.LOPOS_SCENARIO_TDoA, scheduleTdoaGroupsCB)
+    processTagPerCoreCell()
+
+
+def uwbInfoAllCells():
+    global uwb_ActorCnt        
+    global uwb_SFidx
+    for core in loposPy.getCoreAnchors():
+        print ("core is :", core)
+        uwb_SFidx = loposPy.getNextSFidxRef()
+        uwb_ActorCnt = 0
+        loposPy.insertTodo(0xFFF0, uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        uwb_ActorCnt +=1
+        loposPy.requestAnchorPerCell(core, cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1, uwbinfoReqAnchorCellCB)
+        if (uwb_ActorCnt < cfg.LOPOS_SCENARIO_UWB_TAG_OFS):
+            uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
+        loposPy.insertTodo(core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+
+
+def analyzeOpportunities(x,y,dx,dy,txA, rxA):
+    global uwb_ActorCnt
+    global uwb_SFidx
+    if len(rxA)==0 or len(txA)==0:
+        print("Abort analyzeOpportunities len(rxA) vs len(txA)", len(rxA), len(txA) )
+        return
+    uwb_ActorCnt = 0
+    uwb_SFidx = loposPy.getNextSFidxRef() #maybe not used?
+    loposPy.insertTodo(0xFFF0, uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+    uwb_ActorCnt +=1
+    for rxAe in rxA:
+        if (int(rxAe) & 0xF000) == 0xA000:
+            loposPy.insertTodo(int(rxAe), uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+            uwb_ActorCnt +=1
+    if (uwb_ActorCnt < cfg.LOPOS_SCENARIO_UWB_TAG_OFS):
+        uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
+    for txAe in txA:
+        loposPy.insertTodo(int(txAe), uwb_SFidx,  cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        uwb_ActorCnt +=1
+
+def altIUwbInfolvoScan():
+	maxx=6
+	maxy=5
+	anchors = np.array([ 
+			[ 0xA00A,		-1,		-1,	0xA00E,	0xA00F,	0xA010],
+			[ 0xA00B,	0xA009,	0x1002,	0xA00D,	0xA014,	0xA011],
+			[ 0xA003,	0xA004,	0xA005,	0xA00C,	0xA013,	0xA012],
+			[ 0xA002,	0xA000,	0xA006,		-1,		-1,		-1],
+			[ 0xA001,	0xA008,	0xA007,		-1,		-1,		-1]
+	])
+	for x in range (0, maxx):
+		for dx in (-1,1):
+			rxA = []
+			txA = []
+			if x+dx < 0:
+				continue
+			if x+dx >= maxx:
+				continue
+			for y in range (0, maxy):
+				if anchors[y,x] != -1:
+					txA.append(anchors[y,x])
+				if anchors[y,x+dx] != -1:
+					rxA.append(anchors[y,x+dx])
+			analyzeOpportunities(x,0,dx,0,txA, rxA)
+	for y in range (0, maxy):
+		rxA = []
+		txA = []
+		for dy in (-1,1):
+			if y+dy < 0:
+				continue
+			if y+dy >= maxy:
+				continue
+			for x in range (0, maxx):
+				if x % 2 != 0: 
+					continue
+				if anchors[y,x] not in txA and  anchors[y,x] != -1:
+					txA.append(anchors[y,x])
+				if anchors[y+dy,x] != -1:
+					rxA.append(anchors[y+dy,x])
+		analyzeOpportunities(x,y,dx,dy,txA, rxA)
+		rxA = []
+		txA = []
+		for dy in (-1,1):
+			if y+dy < 0:
+				continue
+			if y+dy >= maxy:
+				continue
+			for x in range (0, maxx):
+				if x % 2 == 0: 
+					continue
+				if anchors[y,x] not in txA and  anchors[y,x] != -1:
+					txA.append(anchors[y,x])
+				if anchors[y+dy,x] != -1:
+					rxA.append(anchors[y+dy,x])
+		analyzeOpportunities(x,y,dx,dy,txA, rxA)
+
+
+def updateUwbTxPwrCB(addr, newUwbTxPwr):
+    setTxPwrVal = 0x22
+    if (newUwbTxPwr > 33):
+         return
+    if (newUwbTxPwr <= 2):
+         return
+    DAcoarse = newUwbTxPwr // 3
+    if (DAcoarse > 6): 
+        DAcoarse = 6
+    setTxPwrVal =  (newUwbTxPwr - (DAcoarse * 3)) * 2
+    if (setTxPwrVal > 31) :
+        setTxPwrVal = 31
+    setTxPwrVal += (6 - DAcoarse) * 32
+    loposPy.insertTodo(addr, setTxPwrVal, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+
 #-----------------------------------------------------------
 #Actions
 #-----------------------------------------------------------
@@ -256,16 +417,26 @@ def planActions():
     now = datetime.now()
     t1=int(round(time.time() * 1000000))
     current_time = now.strftime("%H:%M:%S %B %d %Y")
-    print("Schedule iteration (will clean up old todo): @", current_time)
+    print("Schedule iteration (will clean up old todo): @", current_time)   
     loposPy.wrappedESqlDoCommitAndSetInstant(1)
     loposPy.deleteOldSchedules(2)
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Stat)
     loposPy.wrappedESqlDoCommitAndSetInstant(0)
 
-    if hasattr(cfg, 'tagPerCoreCellFixed'):
-        scheduleTDoAAlt()
-    else:
-        scheduleTDoA()
+    loposPy.checkUwbTxPwr(updateUwbTxPwrCB)
+
+    if hasattr(cfg, 'uwbInfoAllCells'):
+        uwbInfoAllCells()
+    if hasattr(cfg, 'altIUwbInfolvoScan'):
+        altIUwbInfolvoScan()
+
+    if hasattr(cfg, 'scheduleTDoAwGroups'):
+        scheduleTDoAgroups()
+    else: 
+        if hasattr(cfg, 'tagPerCoreCellFixed'):
+            scheduleTDoAAlt()
+        else:
+            scheduleTDoA()
 
     scheduleAccel()
     scheduleStats()
@@ -273,6 +444,10 @@ def planActions():
     if hasattr(cfg, 'testAnchor'):
         if cfg.testAnchor == 1:
             testAnchor(0xA01E)
+
+    if hasattr(cfg, 'testSinkStress'):
+        if cfg.testSinkStress == 1:
+            testSinkStress(0xA001)
 
     if hasattr(cfg, 'testFwd'):
         if cfg.testFwd == 1:
@@ -288,11 +463,21 @@ def planActions():
 
     if hasattr(cfg, 'testDiscover'):
         if cfg.testDiscover == 1:
-            testDiscover(0xA01E, 0x1004)
+            loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Discover)
+            testDiscover(0xA014, 0xA009)
+            testDiscover(0xA009, 0xA014)
 
     if hasattr(cfg, 'testUWB'):
         if cfg.testUWB == 1:
-            testUWB(0xA000, 0x1004)
+            loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Uwb)
+            #loposPy.insertTodo(0xA009, 0x38, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            #testUWB(0xA009, 0xA014)
+            #testUWB(0xA014, 0xA009)
+            #loposPy.insertTodo(0xA001, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            #loposPy.insertTodo(0xA002, 0xC0, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            #loposPy.insertTodo(0xA002, 0x38, cfg.LOPOS_SCENARIO_System, 24, 0, 0)
+            #testUWB(0xA002, 0xA001)
+            #testUWB(0xA001, 0xA002)
 
     loposPy.wrappedESqlDoCommitAndSetInstant(0)
     t2=int(round(time.time() * 1000000))
@@ -318,6 +503,7 @@ def on_message(client, userdata, message):
         planActions()
 
 loposPy.initDB()
+loposPy.updateCellsPerGroup()
 loposPy.getPositionCoreAnchors()
 mqtt_broker = '127.0.0.1'
 client = mqtt.Client() #create new instance

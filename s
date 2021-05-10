@@ -5,11 +5,11 @@ if [ ! -z "$1" ]; then
         delay="$1"
 fi
 echo will use delay $delay
-sleep 1
+#sleep 1
 source $lclDir/local_cfg
 sql=`cat << EndOfMessage
 select
-    hex(addr),
+    hex(addr) as 0xaddr,
     case
         when addr&0xF000 = 0xA000 then "anchor"
         when addr&0xFFF0 = 0xFFF0 then "sink"
@@ -35,7 +35,9 @@ select
     max(drift) as maxDrift,
     min(beaconRatio) as minBR,
     round(avg(beaconRatio)) as avgBR,
-    max(beaconRatio) as maxBR
+    max(beaconRatio) as maxBR,
+    ((7 - (min(uwbTxPwr) div 32)) * 3) + round((min(uwbTxPwr) & 0x01F)/2) as UP1,
+    ((7 - (max(uwbTxPwr) div 32)) * 3) + round((max(uwbTxPwr) & 0x01F)/2) as UP2
 from 
     stat 
 where

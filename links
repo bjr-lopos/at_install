@@ -1,0 +1,29 @@
+lclDir=`dirname $0`
+delay=$((15*60))
+if [ ! -z "$1" ]; then
+	delay="$1"
+        delay="$1"
+fi
+echo will use delay $delay
+#sleep 1
+source $lclDir/local_cfg
+sql=`cat << EndOfMessage
+select
+	updated,
+	devTx &0x0FFF as devTx,
+	devRx &0x0FFF as devRx,
+	rxPow
+from 
+	uwbstat
+where 
+	devRx in (0xA01B, 0xA01C, 0xA01D) and
+	devTx in (0xA01B, 0xA01C, 0xA01D) and
+	TIMESTAMPDIFF(HOUR,updated,now()) < 72
+order
+	by 1
+INTO OUTFILE '/tmp/links_3_aug_2020.csv' FIELDS ENCLOSED BY '\"'  TERMINATED BY ';'  ESCAPED BY '\"'  LINES TERMINATED BY '\r\n';
+EndOfMessage`
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql" 
+
+
+

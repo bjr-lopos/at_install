@@ -30,10 +30,10 @@ select
     max(beaconRatio) as maxBR
 from 
     stat 
+where
+    TIMESTAMPDIFF(SECOND,updated,now()) < 300
 group by 
     addr, mac 
-having
-    TIMESTAMPDIFF(SECOND,max(updated),now()) < 300
 order by 
     6;
 EndOfMessage`

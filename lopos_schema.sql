@@ -23,14 +23,15 @@ DROP TABLE IF EXISTS `anchor`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `anchor` (
-  `id` int(4) NOT NULL AUTO_INCREMENT,
-  `addr` int(5) NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `addr` int NOT NULL,
+  `group` int NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `addrid_UNIQUE` (`addr`),
   KEY `fk_anchor_1_idx` (`addr`),
-  CONSTRAINT `fk_anchor_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
+  CONSTRAINT `fk_anchor_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -43,12 +44,11 @@ DROP TABLE IF EXISTS `cell`;
 CREATE TABLE `cell` (
   `core` int NOT NULL,
   `edge` int NOT NULL,
-  `group` int DEFAULT NULL,
   PRIMARY KEY (`core`,`edge`),
   KEY `index1` (`core`),
   KEY `fk_cell_2_idx` (`edge`),
-  CONSTRAINT `fk_cell_1` FOREIGN KEY (`core`) REFERENCES `anchor` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_cell_2` FOREIGN KEY (`edge`) REFERENCES `anchor` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_cell_1` FOREIGN KEY (`core`) REFERENCES `anchor` (`id`),
+  CONSTRAINT `fk_cell_2` FOREIGN KEY (`edge`) REFERENCES `anchor` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -60,108 +60,108 @@ DROP TABLE IF EXISTS `cir`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `cir` (
-  `reporter` int(5) NOT NULL,
-  `dev` int(5) NOT NULL,
-  `asn` int(20) NOT NULL DEFAULT '0',
+  `reporter` int NOT NULL,
+  `dev` int NOT NULL,
+  `asn` int NOT NULL DEFAULT '0',
   `rxQual` float(6,3) DEFAULT NULL,
   `fpPow` float(6,3) DEFAULT NULL,
   `rxPow` float(6,3) DEFAULT NULL,
-  `cir0` int(6) DEFAULT NULL,
-  `cir1` int(6) DEFAULT NULL,
-  `cir2` int(6) DEFAULT NULL,
-  `cir3` int(6) DEFAULT NULL,
-  `cir4` int(6) DEFAULT NULL,
-  `cir5` int(6) DEFAULT NULL,
-  `cir6` int(6) DEFAULT NULL,
-  `cir7` int(6) DEFAULT NULL,
-  `cir8` int(6) DEFAULT NULL,
-  `cir9` int(6) DEFAULT NULL,
-  `cir10` int(6) DEFAULT NULL,
-  `cir11` int(6) DEFAULT NULL,
-  `cir12` int(6) DEFAULT NULL,
-  `cir13` int(6) DEFAULT NULL,
-  `cir14` int(6) DEFAULT NULL,
-  `cir15` int(6) DEFAULT NULL,
-  `cir16` int(6) DEFAULT NULL,
-  `cir17` int(6) DEFAULT NULL,
-  `cir18` int(6) DEFAULT NULL,
-  `cir19` int(6) DEFAULT NULL,
-  `cir20` int(6) DEFAULT NULL,
-  `cir21` int(6) DEFAULT NULL,
-  `cir22` int(6) DEFAULT NULL,
-  `cir23` int(6) DEFAULT NULL,
-  `cir24` int(6) DEFAULT NULL,
-  `cir25` int(6) DEFAULT NULL,
-  `cir26` int(6) DEFAULT NULL,
-  `cir27` int(6) DEFAULT NULL,
-  `cir28` int(6) DEFAULT NULL,
-  `cir29` int(6) DEFAULT NULL,
-  `cir30` int(6) DEFAULT NULL,
-  `cir31` int(6) DEFAULT NULL,
-  `cir32` int(6) DEFAULT NULL,
-  `cir33` int(6) DEFAULT NULL,
-  `cir34` int(6) DEFAULT NULL,
-  `cir35` int(6) DEFAULT NULL,
-  `cir36` int(6) DEFAULT NULL,
-  `cir37` int(6) DEFAULT NULL,
-  `cir38` int(6) DEFAULT NULL,
-  `cir39` int(6) DEFAULT NULL,
-  `cir40` int(6) DEFAULT NULL,
-  `cir41` int(6) DEFAULT NULL,
-  `cir42` int(6) DEFAULT NULL,
-  `cir43` int(6) DEFAULT NULL,
-  `cir44` int(6) DEFAULT NULL,
-  `cir45` int(6) DEFAULT NULL,
-  `cir46` int(6) DEFAULT NULL,
-  `cir47` int(6) DEFAULT NULL,
-  `cir48` int(6) DEFAULT NULL,
-  `cir49` int(6) DEFAULT NULL,
-  `cir50` int(6) DEFAULT NULL,
-  `cir51` int(6) DEFAULT NULL,
-  `cir52` int(6) DEFAULT NULL,
-  `cir53` int(6) DEFAULT NULL,
-  `cir54` int(6) DEFAULT NULL,
-  `cir55` int(6) DEFAULT NULL,
-  `cir56` int(6) DEFAULT NULL,
-  `cir57` int(6) DEFAULT NULL,
-  `cir58` int(6) DEFAULT NULL,
-  `cir59` int(6) DEFAULT NULL,
-  `cir60` int(6) DEFAULT NULL,
-  `cir61` int(6) DEFAULT NULL,
-  `cir62` int(6) DEFAULT NULL,
-  `cir63` int(6) DEFAULT NULL,
-  `cir64` int(6) DEFAULT NULL,
-  `cir65` int(6) DEFAULT NULL,
-  `cir66` int(6) DEFAULT NULL,
-  `cir67` int(6) DEFAULT NULL,
-  `cir68` int(6) DEFAULT NULL,
-  `cir69` int(6) DEFAULT NULL,
-  `cir70` int(6) DEFAULT NULL,
-  `cir71` int(6) DEFAULT NULL,
-  `cir72` int(6) DEFAULT NULL,
-  `cir73` int(6) DEFAULT NULL,
-  `cir74` int(6) DEFAULT NULL,
-  `cir75` int(6) DEFAULT NULL,
-  `cir76` int(6) DEFAULT NULL,
-  `cir77` int(6) DEFAULT NULL,
-  `cir78` int(6) DEFAULT NULL,
-  `cir79` int(6) DEFAULT NULL,
-  `cir80` int(6) DEFAULT NULL,
-  `cir81` int(6) DEFAULT NULL,
-  `cir82` int(6) DEFAULT NULL,
-  `cir83` int(6) DEFAULT NULL,
-  `cir84` int(6) DEFAULT NULL,
-  `cir85` int(6) DEFAULT NULL,
-  `cir86` int(6) DEFAULT NULL,
-  `cir87` int(6) DEFAULT NULL,
-  `cir88` int(6) DEFAULT NULL,
-  `cir89` int(6) DEFAULT NULL,
+  `cir0` int DEFAULT NULL,
+  `cir1` int DEFAULT NULL,
+  `cir2` int DEFAULT NULL,
+  `cir3` int DEFAULT NULL,
+  `cir4` int DEFAULT NULL,
+  `cir5` int DEFAULT NULL,
+  `cir6` int DEFAULT NULL,
+  `cir7` int DEFAULT NULL,
+  `cir8` int DEFAULT NULL,
+  `cir9` int DEFAULT NULL,
+  `cir10` int DEFAULT NULL,
+  `cir11` int DEFAULT NULL,
+  `cir12` int DEFAULT NULL,
+  `cir13` int DEFAULT NULL,
+  `cir14` int DEFAULT NULL,
+  `cir15` int DEFAULT NULL,
+  `cir16` int DEFAULT NULL,
+  `cir17` int DEFAULT NULL,
+  `cir18` int DEFAULT NULL,
+  `cir19` int DEFAULT NULL,
+  `cir20` int DEFAULT NULL,
+  `cir21` int DEFAULT NULL,
+  `cir22` int DEFAULT NULL,
+  `cir23` int DEFAULT NULL,
+  `cir24` int DEFAULT NULL,
+  `cir25` int DEFAULT NULL,
+  `cir26` int DEFAULT NULL,
+  `cir27` int DEFAULT NULL,
+  `cir28` int DEFAULT NULL,
+  `cir29` int DEFAULT NULL,
+  `cir30` int DEFAULT NULL,
+  `cir31` int DEFAULT NULL,
+  `cir32` int DEFAULT NULL,
+  `cir33` int DEFAULT NULL,
+  `cir34` int DEFAULT NULL,
+  `cir35` int DEFAULT NULL,
+  `cir36` int DEFAULT NULL,
+  `cir37` int DEFAULT NULL,
+  `cir38` int DEFAULT NULL,
+  `cir39` int DEFAULT NULL,
+  `cir40` int DEFAULT NULL,
+  `cir41` int DEFAULT NULL,
+  `cir42` int DEFAULT NULL,
+  `cir43` int DEFAULT NULL,
+  `cir44` int DEFAULT NULL,
+  `cir45` int DEFAULT NULL,
+  `cir46` int DEFAULT NULL,
+  `cir47` int DEFAULT NULL,
+  `cir48` int DEFAULT NULL,
+  `cir49` int DEFAULT NULL,
+  `cir50` int DEFAULT NULL,
+  `cir51` int DEFAULT NULL,
+  `cir52` int DEFAULT NULL,
+  `cir53` int DEFAULT NULL,
+  `cir54` int DEFAULT NULL,
+  `cir55` int DEFAULT NULL,
+  `cir56` int DEFAULT NULL,
+  `cir57` int DEFAULT NULL,
+  `cir58` int DEFAULT NULL,
+  `cir59` int DEFAULT NULL,
+  `cir60` int DEFAULT NULL,
+  `cir61` int DEFAULT NULL,
+  `cir62` int DEFAULT NULL,
+  `cir63` int DEFAULT NULL,
+  `cir64` int DEFAULT NULL,
+  `cir65` int DEFAULT NULL,
+  `cir66` int DEFAULT NULL,
+  `cir67` int DEFAULT NULL,
+  `cir68` int DEFAULT NULL,
+  `cir69` int DEFAULT NULL,
+  `cir70` int DEFAULT NULL,
+  `cir71` int DEFAULT NULL,
+  `cir72` int DEFAULT NULL,
+  `cir73` int DEFAULT NULL,
+  `cir74` int DEFAULT NULL,
+  `cir75` int DEFAULT NULL,
+  `cir76` int DEFAULT NULL,
+  `cir77` int DEFAULT NULL,
+  `cir78` int DEFAULT NULL,
+  `cir79` int DEFAULT NULL,
+  `cir80` int DEFAULT NULL,
+  `cir81` int DEFAULT NULL,
+  `cir82` int DEFAULT NULL,
+  `cir83` int DEFAULT NULL,
+  `cir84` int DEFAULT NULL,
+  `cir85` int DEFAULT NULL,
+  `cir86` int DEFAULT NULL,
+  `cir87` int DEFAULT NULL,
+  `cir88` int DEFAULT NULL,
+  `cir89` int DEFAULT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`reporter`,`asn`),
   KEY `fk_cir_2_idx` (`updated`),
   KEY `fk_cir_2` (`dev`),
-  CONSTRAINT `fk_cir_1` FOREIGN KEY (`reporter`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_cir_2` FOREIGN KEY (`dev`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_cir_1` FOREIGN KEY (`reporter`) REFERENCES `device` (`addr`),
+  CONSTRAINT `fk_cir_2` FOREIGN KEY (`dev`) REFERENCES `device` (`addr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -173,10 +173,11 @@ DROP TABLE IF EXISTS `device`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `device` (
-  `addr` int(5) NOT NULL AUTO_INCREMENT,
+  `addr` int NOT NULL AUTO_INCREMENT,
   `mac` varchar(18) NOT NULL,
   `vbattATdfu` float(4,3) DEFAULT NULL,
   `added` timestamp(3) NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `uwbTxPower` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`addr`),
   UNIQUE KEY `addr_UNIQUE` (`addr`),
   UNIQUE KEY `mac_UNIQUE` (`mac`),
@@ -192,15 +193,15 @@ DROP TABLE IF EXISTS `dfu`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `dfu` (
-  `addr` int(5) NOT NULL,
-  `dfuStat` int(2) DEFAULT NULL,
+  `addr` int NOT NULL,
+  `dfuStat` int DEFAULT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  `version` int(11) DEFAULT NULL,
+  `version` int DEFAULT NULL,
   PRIMARY KEY (`addr`,`updated`),
   KEY `index2` (`addr`,`updated`),
   KEY `fk_dfu_2_idx` (`version`),
-  CONSTRAINT `fk_dfu_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_dfu_2` FOREIGN KEY (`version`) REFERENCES `version` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_dfu_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`),
+  CONSTRAINT `fk_dfu_2` FOREIGN KEY (`version`) REFERENCES `version` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -212,11 +213,11 @@ DROP TABLE IF EXISTS `map`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `map` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `x1` int(11) DEFAULT NULL,
-  `y1` int(11) DEFAULT NULL,
-  `x2` int(11) DEFAULT NULL,
-  `y2` int(11) DEFAULT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `x1` int DEFAULT NULL,
+  `y1` int DEFAULT NULL,
+  `x2` int DEFAULT NULL,
+  `y2` int DEFAULT NULL,
   `mapcol` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
@@ -230,16 +231,16 @@ DROP TABLE IF EXISTS `motion`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `motion` (
-  `addr` int(5) NOT NULL,
-  `asn` int(20) DEFAULT NULL,
-  `idx` int(3) DEFAULT NULL,
-  `x` int(11) DEFAULT NULL,
-  `y` int(11) DEFAULT NULL,
-  `z` int(11) DEFAULT NULL,
+  `addr` int NOT NULL,
+  `asn` int DEFAULT NULL,
+  `idx` int DEFAULT NULL,
+  `x` int DEFAULT NULL,
+  `y` int DEFAULT NULL,
+  `z` int DEFAULT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`addr`,`updated`),
-  KEY `speedup` (`updated` desc,`addr`),
-  CONSTRAINT `fk_motion_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  KEY `speedup` (`updated` DESC,`addr`),
+  CONSTRAINT `fk_motion_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -251,9 +252,9 @@ DROP TABLE IF EXISTS `plan`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `plan` (
-  `addr` int(5) NOT NULL,
-  `scenario` int(3) NOT NULL,
-  `interval` int(5) DEFAULT NULL,
+  `addr` int NOT NULL,
+  `scenario` int NOT NULL,
+  `interval` int DEFAULT NULL,
   PRIMARY KEY (`addr`,`scenario`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -266,18 +267,18 @@ DROP TABLE IF EXISTS `position`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `position` (
-  `addr` int(5) NOT NULL,
-  `asn` int(20) NOT NULL DEFAULT '0',
-  `x` int(7) DEFAULT NULL,
-  `y` int(7) DEFAULT NULL,
-  `z` int(7) DEFAULT NULL,
+  `addr` int NOT NULL,
+  `asn` int NOT NULL DEFAULT '0',
+  `x` int DEFAULT NULL,
+  `y` int DEFAULT NULL,
+  `z` int DEFAULT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  `numHyperbola` int(3) DEFAULT NULL,
-  `numPyTime` int(5) DEFAULT NULL,
+  `numHyperbola` int DEFAULT NULL,
+  `numPyTime` int DEFAULT NULL,
   PRIMARY KEY (`addr`,`updated`),
-  KEY `pos_addr_upd` (`updated` desc,`addr`),
+  KEY `pos_addr_upd` (`updated` DESC,`addr`),
   KEY `pos_addr` (`addr`),
-  CONSTRAINT `fk_position_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_position_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -289,24 +290,24 @@ DROP TABLE IF EXISTS `stat`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `stat` (
-  `addr` int(5) NOT NULL,
-  `asn` int(16) NOT NULL DEFAULT '0',
-  `version` int(11) NOT NULL DEFAULT '0',
+  `addr` int NOT NULL,
+  `asn` int NOT NULL DEFAULT '0',
+  `version` int NOT NULL DEFAULT '0',
   `mac` varchar(17) DEFAULT NULL,
-  `vbattRatio` int(3) NOT NULL DEFAULT '0',
-  `drift` int(6) NOT NULL DEFAULT '0',
-  `beaconRSSI` int(3) NOT NULL DEFAULT '0',
-  `devRSSI` int(3) NOT NULL DEFAULT '0',
-  `beaconRatio` int(3) NOT NULL DEFAULT '0',
-  `sgTxRatio` int(3) NOT NULL DEFAULT '0',
-  `sgRxRatio` int(3) NOT NULL DEFAULT '0',
-  `uwbTxRatio` int(3) NOT NULL DEFAULT '0',
-  `uwbRxRatio` int(3) NOT NULL DEFAULT '0',
-  `uwbTxPwr` int(3) DEFAULT '0',
+  `vbattRatio` int NOT NULL DEFAULT '0',
+  `drift` int NOT NULL DEFAULT '0',
+  `beaconRSSI` int NOT NULL DEFAULT '0',
+  `devRSSI` int NOT NULL DEFAULT '0',
+  `beaconRatio` int NOT NULL DEFAULT '0',
+  `sgTxRatio` int NOT NULL DEFAULT '0',
+  `sgRxRatio` int NOT NULL DEFAULT '0',
+  `uwbTxRatio` int NOT NULL DEFAULT '0',
+  `uwbRxRatio` int NOT NULL DEFAULT '0',
+  `uwbTxPwr` int DEFAULT '0',
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`addr`,`updated`),
-  KEY `speedup` (`updated` desc,`addr`),
-  CONSTRAINT `fk_stat_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  KEY `speedup` (`updated` DESC,`addr`),
+  CONSTRAINT `fk_stat_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -320,8 +321,8 @@ DROP TABLE IF EXISTS `sys`;
 CREATE TABLE `sys` (
   `installDate` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `beaconID` bit(8) NOT NULL,
-  `SFmax` int(5) NOT NULL,
-  `SFticks` int(5) NOT NULL,
+  `SFmax` int NOT NULL,
+  `SFticks` int NOT NULL,
   PRIMARY KEY (`installDate`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -341,8 +342,8 @@ CREATE TABLE `tag` (
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `addr_UNIQUE` (`addr`),
   KEY `fk_tag_1_idx` (`addr`),
-  CONSTRAINT `fk_tag_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
+  CONSTRAINT `fk_tag_1` FOREIGN KEY (`addr`) REFERENCES `device` (`addr`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -353,20 +354,20 @@ DROP TABLE IF EXISTS `tdoa`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tdoa` (
-  `edge` int(4) NOT NULL,
-  `sync` int(4) NOT NULL,
-  `tag` int(4) NOT NULL,
-  `asn` int(20) NOT NULL DEFAULT '0',
-  `ts` int(13) DEFAULT '0',
-  `drift` int(10) DEFAULT NULL,
+  `edge` int NOT NULL,
+  `sync` int NOT NULL,
+  `tag` int NOT NULL,
+  `asn` int NOT NULL DEFAULT '0',
+  `ts` int DEFAULT '0',
+  `drift` int DEFAULT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`edge`,`sync`,`tag`,`asn`),
   KEY `fk_tdoa_2_idx` (`sync`),
   KEY `fk_tdoa_3_idx` (`tag`),
-  KEY `speedup` (`updated` desc,`tag`),
-  CONSTRAINT `fk_tdoa_1` FOREIGN KEY (`edge`) REFERENCES `anchor` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_tdoa_2` FOREIGN KEY (`sync`) REFERENCES `anchor` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_tdoa_3` FOREIGN KEY (`tag`) REFERENCES `tag` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  KEY `speedup` (`updated` DESC,`tag`),
+  CONSTRAINT `fk_tdoa_1` FOREIGN KEY (`edge`) REFERENCES `anchor` (`id`),
+  CONSTRAINT `fk_tdoa_2` FOREIGN KEY (`sync`) REFERENCES `anchor` (`id`),
+  CONSTRAINT `fk_tdoa_3` FOREIGN KEY (`tag`) REFERENCES `tag` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -391,11 +392,11 @@ DROP TABLE IF EXISTS `todo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `todo` (
-  `addr` int(5) NOT NULL DEFAULT '0',
-  `scheduleAT` int(4) NOT NULL DEFAULT '0',
-  `scenario` int(3) DEFAULT '0',
-  `actor` int(2) DEFAULT '0',
-  `rescheduleSF` int(4) DEFAULT '0',
+  `addr` int NOT NULL DEFAULT '0',
+  `scheduleAT` int NOT NULL DEFAULT '0',
+  `scenario` int DEFAULT '0',
+  `actor` int DEFAULT '0',
+  `rescheduleSF` int DEFAULT '0',
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`addr`,`scheduleAT`),
   KEY `time` (`updated`),
@@ -412,15 +413,15 @@ DROP TABLE IF EXISTS `twr`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `twr` (
-  `devA` int(5) NOT NULL,
-  `devB` int(5) NOT NULL,
-  `asn` int(20) NOT NULL DEFAULT '0',
-  `dist` int(11) DEFAULT '0',
+  `devA` int NOT NULL,
+  `devB` int NOT NULL,
+  `asn` int NOT NULL DEFAULT '0',
+  `dist` int DEFAULT '0',
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  PRIMARY KEY (`devA`,`devB`),
+  PRIMARY KEY (`devA`,`devB`,`asn`),
   KEY `fk_twr_2_idx` (`devB`),
-  CONSTRAINT `fk_twr_1` FOREIGN KEY (`devA`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_twr_2` FOREIGN KEY (`devB`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_twr_1` FOREIGN KEY (`devA`) REFERENCES `device` (`addr`),
+  CONSTRAINT `fk_twr_2` FOREIGN KEY (`devB`) REFERENCES `device` (`addr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -432,21 +433,21 @@ DROP TABLE IF EXISTS `uwbstat`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `uwbstat` (
-  `devTx` int(5) NOT NULL,
-  `devRx` int(5) NOT NULL,
-  `asn` int(20) NOT NULL DEFAULT '0',
+  `devTx` int NOT NULL,
+  `devRx` int NOT NULL,
+  `asn` int NOT NULL DEFAULT '0',
   `rxQual` float(6,3) DEFAULT NULL,
   `fpPow` float(6,3) DEFAULT NULL,
   `rxPow` float(6,3) DEFAULT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`devTx`,`devRx`,`asn`),
   KEY `fk_uwbstat_2_idx` (`devRx`),
-  KEY `speedup` (`updated` desc,`devTx`),
+  KEY `speedup` (`updated` DESC,`devTx`),
   KEY `uwbstat_devRx` (`devRx`),
   KEY `uwbstat_devTx` (`devTx`),
   KEY `uwbstat_upd_desc` (`updated`),
-  CONSTRAINT `fk_uwbstat_1` FOREIGN KEY (`devTx`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `fk_uwbstat_2` FOREIGN KEY (`devRx`) REFERENCES `device` (`addr`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `fk_uwbstat_1` FOREIGN KEY (`devTx`) REFERENCES `device` (`addr`),
+  CONSTRAINT `fk_uwbstat_2` FOREIGN KEY (`devRx`) REFERENCES `device` (`addr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -458,7 +459,7 @@ DROP TABLE IF EXISTS `version`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `version` (
-  `id` int(11) NOT NULL,
+  `id` int NOT NULL,
   `updated` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `comment` varchar(200) DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -493,4 +494,4 @@ CREATE TABLE `version` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-07-14 10:46:51
+-- Dump completed on 2021-06-14 13:57:57

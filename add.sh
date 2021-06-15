@@ -18,16 +18,20 @@ elif [ "$1" = "sink" ]; then
 else
     echo "Warning default profile is $profile"
 fi
-id=$(($1+$offset))
+id=$1
+addr=$(($id+$offset))
 interval=320
 if [ ! -z "$2" ]; then
     interval=$2
 fi
-devsql=`printf "insert into device values (%d, \"$profile%d\", 3, now(),0);" $id $1`
-plansql=`printf "insert into plan values (%d, 12, $interval);" $id`
-echo $devsql $plansql
+devsql=`printf "insert into device values (%d, \"%s%d\", 3, now(),0);" $addr $profile $id`
+plansql=`printf "insert into plan values (%d, 12, $interval);" $addr`
+prosql=`printf "insert into %s values (%d, %d, 1);" $profile $id $addr`
+echo $devsql $plansql $prosql
 echo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$devsql"
+echo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$plansql"
 echo mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$plansql"
 mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$devsql"
 mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$plansql"
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$prosql"
 

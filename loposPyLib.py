@@ -195,7 +195,7 @@ def localizeDiscoverTags(age, minRxPow):
         y=disc[3]
         z=disc[4]
         discoveredTag[addr] = [x,y,z]
-    #print("Discovered:", discoveredTag)
+    print("Discovered:", discoveredTag)
 
 def getPositionTags():
     global positionTag

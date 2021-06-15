@@ -172,7 +172,7 @@ def tdoaReqAnchorCellCB(core, edge):
     tdoa_ActorCnt +=1
 
 def scheduleTdoaCB(addr, last, overdue):
-    #print("scheduleTdoaCB: " + hex(addr) + " "+ last + " "+ str(overdue) )
+    print("scheduleTdoaCB: " + hex(addr) + " "+ last + " "+ str(overdue) )
     if (overdue > 64) and (loposPy.findCloseCore(addr,64) is None): 
         global disc_ActorCnt
         global disc_SFidx
@@ -191,6 +191,9 @@ def scheduleTdoaCB(addr, last, overdue):
     else :
         global tagPerCoreCell
         core = loposPy.findCloseCore(addr,1000)
+        if core is None: 
+            print (f"No info found for {addr}")
+            return 
         try:
                 tagPerCoreCell[core].append(addr)
         except KeyError:
@@ -225,7 +228,7 @@ def processTagPerCoreCell() :
     global tdoa_ActorCnt
     global tdoa_SFidx
     tdoa_SFcnt = 0
-    print(tagPerCoreCell)
+    print(f"processTagPerCoreCell {tagPerCoreCell}")
     for core in tagPerCoreCell.keys():
         tdoa_ActorCnt = 0
         tdoa_SFidx = loposPy.getNextSFidxRef() #maybe not used?

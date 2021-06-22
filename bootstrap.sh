@@ -79,8 +79,7 @@ LoposPlanServiceTmp=/tmp/`basename $LoposPlanService`
 cat << EOT > $LoposPlanServiceTmp
 [Unit]
 Description=loposplan service
-#Requires=mysql.service
-#After=mysql.service
+After=mysql.service
 
 [Service]
 User=lopos
@@ -105,8 +104,7 @@ LoposMathServiceTmp=/tmp/`basename $LoposMathService`
 cat << EOT > $LoposMathServiceTmp
 [Unit]
 Description=loposmath service
-#Requires=mysql.service
-#After=mysql.service
+After=mysql.service
 
 [Service]
 User=lopos
@@ -132,8 +130,7 @@ LoposCoreServiceTmp=/tmp/`basename $LoposCoreService`
 cat << EOT > $LoposCoreServiceTmp
 [Unit]
 Description=loposcore service
-#Requires=mysql.service
-#After=mysql.service
+After=mysql.service
 
 [Service]
 Environment=SERIAL_PORT=/dev/ttyUSB0

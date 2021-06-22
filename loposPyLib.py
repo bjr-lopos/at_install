@@ -441,7 +441,8 @@ def checkForSchedules(table, scenario, _reqScheduleCB = None):
             CASE 
                 WHEN ref.last_update IS NULL THEN (round(100 * 0.5 * (1 - rand())))
                 else round( 100* (TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval) / p.interval)
-            end as diff
+            end as diff,
+            p.interval as p_interval
         FROM 
             sys,
             plan as p
@@ -463,9 +464,10 @@ def checkForSchedules(table, scenario, _reqScheduleCB = None):
         addr = needSchedule[0]
         last = needSchedule[1]
         overdue = needSchedule[2]
+        interval = needSchedule[3]
         if _reqScheduleCB:
             #print ("will call cb")
-            _reqScheduleCB(addr, last, overdue)
+            _reqScheduleCB(addr, last, overdue, interval)
 
 #-----------------------------------------------------------
 #SFidxRef and SFrepIdxRef

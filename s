@@ -1,4 +1,5 @@
 lclDir=`dirname $0`
+dumpfile=/tmp/s_`date +%y_%m_%d__%H_%M_%S`.csv
 delay=$((15*60))
 if [ ! -z "$1" ]; then
 	delay="$1"
@@ -7,6 +8,7 @@ fi
 echo will use delay $delay
 #sleep 1
 source $lclDir/local_cfg
+export_sql="INTO OUTFILE \"$dumpfile\" FIELDS ENCLOSED BY '\"'  TERMINATED BY ';'  ESCAPED BY '\"'  LINES TERMINATED BY '\r\n';"
 sql=`cat << EndOfMessage
 select
     hex(addr) as 0xaddr,
@@ -45,9 +47,7 @@ where
 group by 
     addr, mac 
 order by 
-    1;
+    1
 EndOfMessage`
-mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
-
-
-
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql ;"
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql $export_sql ;" 

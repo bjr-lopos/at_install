@@ -1,4 +1,6 @@
 lclDir=`dirname $0`
+header="SELECT '0xaddr', 'type', 'id', 'mac', 'secSinceLastUpdate', 'vbat', 'rssiAvg', 'rssiMin', 'rssiMax', 'version', 'minDrift', 'avgDrift', 'maxDrift', 'minBR', 'avgBR', 'maxBR', 'minUP', 'maxUP'  UNION ALL"
+
 dumpfile=/tmp/s_`date +%y_%m_%d__%H_%M_%S`.csv
 delay=$((15*60))
 if [ ! -z "$1" ]; then
@@ -50,4 +52,4 @@ order by
     1
 EndOfMessage`
 mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql ;"
-mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql $export_sql ;" 
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$header $sql $export_sql ;" 

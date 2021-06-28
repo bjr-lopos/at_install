@@ -308,6 +308,34 @@ def updateCellsPerGroup():
             anchor 
         where 
             anchor.group & 8 = 8
+    UNION
+        select 
+            5, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 0x10 = 0x10
+    UNION
+        select 
+            6, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 0x20 = 0x20
+    UNION
+        select 
+            7, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 0x40 = 0x40
+    UNION
+        select 
+            8, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 0x80 = 0x80
     order by 1;
     """
     records = wrappedSql(sql, {})

@@ -1,7 +1,18 @@
 lclDir=`dirname $0`
 source $lclDir/local_cfg
 #GRANT FILE ON *.* TO 'lopos'@'localhost';
-resFile=/var/lib/mysql-files/`date | sed -e 's/ /_/g'`.csv
+if [ -z "$1" ] | [ -z "$2" ]; then
+	echo please invoke like "$0 startDateTime endDateTime"
+	echo "example: $0 2021-12-25 00:00:00 2021-12-25 10:00:00"
+	exit
+fi
+
+startDateTime=$1
+endDateTime=$2
+
+resFile="/tmp/grab_$startDateTime"_"$endDateTime@`date`.csv"
+resFile=`echo "$resFile" | sed -e 's/ /_/g'`
+#echo $resFile
 sql=`cat << EndOfMessage
 select 
 	addr&0xFFF, x, y, updated 
@@ -10,7 +21,9 @@ from
 where
 	numHyperbola > 2
 	and 
-	updated > "2020-06-29 22:00:00"
+	updated > "$startDateTime"
+	and
+	updated < "$endDateTime"
 order by 4
 INTO OUTFILE 
 	"$resFile"

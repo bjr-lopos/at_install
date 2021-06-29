@@ -12,7 +12,9 @@ echo will use delay $delay
 source $lclDir/local_cfg
 export_sql="INTO OUTFILE \"$dumpfile\" FIELDS ENCLOSED BY '\"'  TERMINATED BY ';'  ESCAPED BY '\"'  LINES TERMINATED BY '\r\n';"
 sql=`cat << EndOfMessage
+SET @row_number = 0;
 select
+    (@row_number:=@row_number + 1) AS r,
     hex(addr) as 0xaddr,
     case
         when addr&0xF000 = 0xA000 then "anchor"

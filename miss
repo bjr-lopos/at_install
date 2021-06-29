@@ -1,26 +1,48 @@
 lclDir=`dirname $0`
-delay=$((10*60))
+delay=$((15*60))
 if [ ! -z "$1" ]; then
-	delay="$1"
         delay="$1"
 fi
-echo will use delay $delay
+shift
+filterTagGroup=0
+if [ ! -z "$1" ]; then
+	filterTagGroup="$1"
+fi
+echo will use delay $delay and will filter tags in group $filterTagGroup
 source $lclDir/local_cfg
 sql=`cat << EndOfMessage
 SET @rowA := 0;
 SELECT 
 	@rowA := @rowA + 1 as idx,
-	addr, hex(addr), addr&0x0FFF, mac
-FROM device WHERE addr NOT IN 
-    ( SELECT addr FROM stat where TIMESTAMPDIFF(SECOND,updated,now()) < $delay group by addr) 
-and (addr&0xFF00)=0x1000
+	d.addr, 
+	hex(d.addr), 
+	d.addr&0x0FFF, 
+	mac, 
+	t.group
+FROM 
+	device as d, 
+	tag as t 
+WHERE
+	d.addr=t.addr and 
+	d.addr NOT IN ( SELECT addr FROM stat where TIMESTAMPDIFF(SECOND,updated,now()) < $delay group by addr) 
+	and (d.addr&0xFF00)=0x1000
+	and t.group <> $filterTagGroup
 union
+
 SELECT 
 	@rowA := @rowA + 1 as idx,
-	addr, hex(addr), addr&0x0FFF, mac
-FROM device WHERE addr NOT IN 
-    ( SELECT addr FROM stat where TIMESTAMPDIFF(SECOND,updated,now()) < $delay group by addr) 
-and (addr&0xFF00)=0xA000
+	d.addr, 
+	hex(d.addr), 
+	d.addr&0x0FFF, 
+	mac,
+	a.group
+FROM 
+	device as d, 
+	anchor as a 
+WHERE 
+	d.addr=a.addr and 
+	d.addr NOT IN ( SELECT addr FROM stat where TIMESTAMPDIFF(SECOND,updated,now()) < $delay group by addr) 
+	and (d.addr&0xFF00)=0xA000
 order by 2;
 
 

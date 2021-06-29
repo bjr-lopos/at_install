@@ -253,7 +253,7 @@ def processTagPerCoreCell() :
                 if (tdoa_ActorCnt < cfg.LOPOS_SCENARIO_TDoA_TAG_OFS):
                     tdoa_ActorCnt = cfg.LOPOS_SCENARIO_TDoA_TAG_OFS
             loposPy.insertTodo(addr, tdoa_SFidx, cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, 0, 0)
-            tdoa_ActorCnt +=1
+            tdoa_ActorCnt += cfg.LOPOS_SCENARIO_TDoA_INTER_ACTOR
             if tdoa_ActorCnt > cfg.LOPOS_SCENARIO_TDoA_TAG_MAX:
                 tdoa_SFcnt += 1
                 if tdoa_SFcnt>=cfg.LOPOS_SCENARIO_TDoA_MAX_SF: 

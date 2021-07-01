@@ -457,7 +457,7 @@ def planActions():
     loposPy.wrappedESqlDoCommitAndSetInstant(0)
 
     if hasattr(cfg, 'scheduleTDoAwGroups'):
-        scheduleTDoAgroups(cfg.LOPOS_FIXED_SUPERFRAMES)
+        scheduleTDoAgroups(cfg.LOPOS_SCENARIO_TDoA_FIXED_SUPERFRAMES)
     else: 
         if hasattr(cfg, 'tagPerCoreCellFixed'):
             scheduleTDoAAlt()
@@ -467,7 +467,7 @@ def planActions():
     if alt_tdoa_iter >= (cfg.LOPOS_ITERATE_TAG_PER_CELL):
         alt_tdoa_iter = 0
 
-    scheduleStats(cfg.LOPOS_FIXED_SUPERFRAMES)
+    scheduleStats(cfg.LOPOS_SCENARIO_STAT_FIXED_SUPERFRAMES)
     scheduleAccel()
     loposPy.checkUwbTxPwr(updateUwbTxPwrCB)
 

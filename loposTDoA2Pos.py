@@ -170,7 +170,7 @@ def calculateAndPlotPosition(jsondata):
 #        "perr":np.sqrt(np.diag(pcov))
     }
     print(jsonObj)
-    if ( ((DEVid & 0xF000) == 0x1000 ) and (abs(resX) < 4500) and (abs(resY) < 4500)):
+    if ((DEVid & 0xF000) == 0x1000 ):
         tagID = DEVid & 0x0FFF
         tagPosition[tagID] = [resX, resY]
     else:

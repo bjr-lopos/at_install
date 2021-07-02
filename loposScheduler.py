@@ -134,7 +134,7 @@ def scheduleAccelCB(addr, last, overdue, interval=32):
     global accel_ActorCnt
     global accel_SFidx
     global accel_SFcnt
-    if (accel_SFcnt > 3):
+    if (accel_SFcnt > cfg.LOPOS_SCENARIO_Accel_MAX_SF):
         return
     #print("scheduleAccelCB: " + hex(addr) + " "+ last + " "+ str(overdue)+ "s"  )
     rescheduleSF = 0

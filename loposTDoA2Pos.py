@@ -142,8 +142,10 @@ def calculateAndPlotPosition(jsondata):
         Yrange=Ymax-Ymin
         Ymin=Ymin - (Yrange * cfg.TDOA2POS_FACTOR_Y)
         Ymax=Ymax + (Yrange * cfg.TDOA2POS_FACTOR_Y)
-    #print (Xmin, Ymin, Xmax, Ymax)
+    #print (, Ymin, Xmax, Ymax)
     #to be defined
+    if startGuess[0] < Xmin or startGuess[0] > Xmax or startGuess[1] < Ymin or startGuess[1] > Ymax:
+        startGuess = (anchorPosition[anchorSync,0], anchorPosition[anchorSync,1])
     bnds=((Xmin, Ymin), (Xmax, Ymax))
     t1=int(round(time.time() * 1000000))
     result = optimization.curve_fit(

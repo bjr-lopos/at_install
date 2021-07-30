@@ -195,7 +195,7 @@ def localizeDiscoverTags(age, minRxPow):
         y=disc[3]
         z=disc[4]
         discoveredTag[addr] = [x,y,z]
-    #print("Discovered:", discoveredTag)
+    print("Discovered:", discoveredTag)
 
 def getPositionTags():
     global positionTag
@@ -308,6 +308,34 @@ def updateCellsPerGroup():
             anchor 
         where 
             anchor.group & 8 = 8
+    UNION
+        select 
+            5, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 0x10 = 0x10
+    UNION
+        select 
+            6, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 0x20 = 0x20
+    UNION
+        select 
+            7, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 0x40 = 0x40
+    UNION
+        select 
+            8, id 
+        from 
+            anchor 
+        where 
+            anchor.group & 0x80 = 0x80
     order by 1;
     """
     records = wrappedSql(sql, {})
@@ -400,6 +428,7 @@ def requestAnchorPerCell(core, max, _reqAnchorCellCB = None):
 
 
 def checkUwbTxPwr(_reqUpdateUwbTxPwrCB = None):
+    print("checkUwbTxPwr adjusting the UWB tx Power if needed")
     sql = """
         SELECT
             d.addr,
@@ -441,7 +470,8 @@ def checkForSchedules(table, scenario, _reqScheduleCB = None):
             CASE 
                 WHEN ref.last_update IS NULL THEN (round(100 * 0.5 * (1 - rand())))
                 else round( 100* (TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval) / p.interval)
-            end as diff
+            end as diff,
+            p.interval as p_interval
         FROM 
             sys,
             plan as p
@@ -463,9 +493,45 @@ def checkForSchedules(table, scenario, _reqScheduleCB = None):
         addr = needSchedule[0]
         last = needSchedule[1]
         overdue = needSchedule[2]
+        interval = needSchedule[3]
         if _reqScheduleCB:
             #print ("will call cb")
-            _reqScheduleCB(addr, last, overdue)
+            _reqScheduleCB(addr, last, overdue, interval)
+
+def checkForSchedulesFixed(table, scenario, _reqScheduleCB = None):
+    sql = """
+        SELECT
+            p.addr, 
+            CASE 
+                WHEN ref.last_update IS NULL THEN 0 
+                else DATE_ADD(ref.last_update, INTERVAL p.interval SECOND) 
+            end as schedule,
+            CASE 
+                WHEN ref.last_update IS NULL THEN (round(100 * 0.5 * (1 - rand())))
+                else round( 100* (TIMESTAMPDIFF(SECOND,ref.last_update,now()) - p.interval) / p.interval)
+            end as diff,
+            p.interval as p_interval
+        FROM 
+            sys,
+            plan as p
+        LEFT JOIN 
+            (select addr, max(updated) as last_update from """ + table + """ group by addr) as ref
+        ON    
+            p.addr = ref.addr	
+        where 
+            scenario = %(scenario)s 
+        order by 1;        
+    """
+    records = wrappedSql(sql, {'scenario':scenario} )
+    for needSchedule in records:
+        addr = needSchedule[0]
+        last = needSchedule[1]
+        overdue = needSchedule[2]
+        interval = needSchedule[3]
+        if _reqScheduleCB:
+            #print ("will call cb")
+            _reqScheduleCB(addr, last, overdue, interval)
+
 
 #-----------------------------------------------------------
 #SFidxRef and SFrepIdxRef
@@ -503,10 +569,10 @@ def initSFidxRef():
     SFidxRef = keepOutRepeatingAndfixedSF(0)
     return SFidxRef
 
-def getNextSFidxRef():
+def getNextSFidxRef(inter_sf = 1):
     global SFidxRef
     SFidxCurr = SFidxRef
-    SFidxRef = keepOutRepeatingAndfixedSF(SFidxCurr+1)
+    SFidxRef = keepOutRepeatingAndfixedSF(SFidxCurr+inter_sf)
     return SFidxCurr
 
 
@@ -515,9 +581,9 @@ def initSFrepIdxRef():
     SFrepIdxRef = claimRepeatingAndfixedSF(0)
     return SFrepIdxRef
 
-def getNextSFrepIdxRef():
+def getNextSFrepIdxRef(inter_sf = 1):
     global SFrepIdxRef 
     SFrepIdxCurr = SFrepIdxRef
-    SFrepIdxRef = claimRepeatingAndfixedSF(SFrepIdxCurr+1)
+    SFrepIdxRef = claimRepeatingAndfixedSF(SFrepIdxCurr+inter_sf)
     return SFrepIdxCurr
 

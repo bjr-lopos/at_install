@@ -1,0 +1,6 @@
+#!/bin/bash
+pwd=`dirname $0` 
+sudo service loposcore restart
+sudo service loposmath restart
+sudo service loposplan restart
+$pwd/fix_tz.sh

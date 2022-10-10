@@ -19,6 +19,7 @@ select
     scheduleAT,
     scenario,
     actor,
+    rescheduleSF,
     TIMESTAMPDIFF(SECOND,updated,now()) as secSinceLastUpdate
 from 
     todo

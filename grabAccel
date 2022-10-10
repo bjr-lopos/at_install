@@ -25,7 +25,7 @@ select
 	m.y * 4 as Ymg,
 	m.z * 4 as Zmg
 from 
-	motion1 as m
+	motion as m
 where
 	updated > "$startDateTime"
 	and

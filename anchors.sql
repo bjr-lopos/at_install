@@ -1,0 +1,16 @@
+insert into anchor values (2,40962,0,170,50,45,now(),0,0);
+insert into anchor values (1,40961,0,170,450,45,now(),0,0);
+insert into anchor values (29,40989,0,170,1350,45,now(),0,0);
+insert into anchor values (26,40986,0,170,1470,45,now(),0,0);
+insert into anchor values (10,40970,0,830,50,45,now(),0,0);
+insert into anchor values (11,40971,0,830,450,45,now(),0,0);
+insert into anchor values (23,40983,0,830,1350,45,now(),0,0);
+insert into anchor values (24,40984,0,830,1470,45,now(),0,0);
+insert into anchor values (31,40991,0,1970,50,45,now(),0,0);
+insert into anchor values (28,40988,0,1970,450,45,now(),0,0);
+insert into anchor values (49,41009,0,1970,1350,45,now(),0,0);
+insert into anchor values (48,41008,0,1970,1470,45,now(),0,0);
+insert into anchor values (41,41001,0,2630,50,45,now(),0,0);
+insert into anchor values (45,41005,0,2630,450,45,now(),0,0);
+insert into anchor values (46,41006,0,2630,1350,45,now(),0,0);
+insert into anchor values (47,41007,0,2630,1470,45,now(),0,0);

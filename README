@@ -1,0 +1,1 @@
+ssh -p 80 -R 0.0.0.0:6081:localhost:3306 loposwish@vps2.lopos.be

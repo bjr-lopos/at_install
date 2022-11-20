@@ -1,0 +1,16 @@
+insert into position values (40962,0,170,50,45,now(),0,0);
+insert into position values (40961,0,170,450,45,now(),0,0);
+insert into position values (40989,0,170,700,45,now(),0,0);
+insert into position values (40986,0,170,1100,45,now(),0,0);
+insert into position values (40970,0,830,50,45,now(),0,0);
+insert into position values (40971,0,830,450,45,now(),0,0);
+insert into position values (40983,0,830,700,45,now(),0,0);
+insert into position values (40984,0,830,1100,45,now(),0,0);
+insert into position values (40991,0,1370,50,45,now(),0,0);
+insert into position values (40988,0,1370,450,45,now(),0,0);
+insert into position values (41009,0,1370,700,45,now(),0,0);
+insert into position values (41008,0,1370,1100,45,now(),0,0);
+insert into position values (41001,0,2030,50,45,now(),0,0);
+insert into position values (41005,0,2030,450,45,now(),0,0);
+insert into position values (41006,0,2030,700,45,now(),0,0);
+insert into position values (41007,0,2030,1100,45,now(),0,0);

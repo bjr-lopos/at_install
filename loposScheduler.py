@@ -474,7 +474,7 @@ def planActions():
         alt_tdoa_iter = 0
 
     scheduleStats(cfg.LOPOS_SCENARIO_STAT_FIXED_SUPERFRAMES)
-    scheduleAccel()
+    #scheduleAccel()
     loposPy.checkUwbTxPwr(updateUwbTxPwrCB)
 
     if hasattr(cfg, 'uwbInfoAllCells'):

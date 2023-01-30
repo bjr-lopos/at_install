@@ -1,0 +1,4 @@
+lopos@lopos-ZBOX-EN760:~/install/round2$ cat round2_tags.csv | head -n 1 | tail -n 1 | sed -e 's/,/ /g' > pen1.txt
+lopos@lopos-ZBOX-EN760:~/install/round2$ cat round2_tags.csv | head -n 2 | tail -n 1 | sed -e 's/,/ /g' > pen2.txt
+lopos@lopos-ZBOX-EN760:~/install/round2$ cat round2_tags.csv | head -n 3 | tail -n 1 | sed -e 's/,/ /g' > pen3.txt
+lopos@lopos-ZBOX-EN760:~/install/round2$ cat round2_tags.csv | head -n 4 | tail -n 1 | sed -e 's/,/ /g' > pen4.txt

@@ -554,8 +554,8 @@ def keepOutRepeatingAndfixedSF(SFid):
 
 def claimRepeatingAndfixedSF(SFid):
     adjust2allowedOffsets = {0:2, 1:1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}  
-    if SFid <= cfg.LOPOS_LAST_FIXED_SF:
-        SFid = cfg.LOPOS_LAST_FIXED_SF + 1
+    if SFid <= cfg.LOPOS_FIRST_REPEAT_SF:
+        SFid = cfg.LOPOS_FIRST_REPEAT_SF+ 1
     if SFid >cfg.LOPOS_LAST_USABLE_SF:
         loposPy.deleteOldSchedules(0)
         print("ERROR: Hyperframe overstressed!")

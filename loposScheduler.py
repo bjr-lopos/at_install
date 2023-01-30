@@ -24,6 +24,8 @@ disc_ActorCnt=0
 disc_SFidx=0
 tdoa_ActorCnt=0
 tdoa_SFidx=0
+tdoa_interval = 32
+tdoa_rescheduleSF = int(math.log2(tdoa_interval))+1
 uwb_ActorCnt = 0
 uwb_SFidx = 0
 
@@ -144,13 +146,13 @@ def scheduleAccelCB(addr, last, overdue, interval=32):
         loposPy.insertTodo(0xFFF0, accel_SFidx,  cfg.LOPOS_SCENARIO_Accel, accel_ActorCnt, rescheduleSF, last)
         accel_ActorCnt +=1
     loposPy.insertTodo(addr, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, accel_ActorCnt, rescheduleSF, last)
-    accel_ActorCnt +=1
+    accel_ActorCnt +=2
     if accel_ActorCnt > 10:
         accel_ActorCnt = 0
-        accel_SFidx = loposPy.getNextSFrepIdxRef()
+        accel_SFidx = loposPy.getNextSFidxRef()
         accel_SFcnt += 1
 
-def scheduleAccel():
+def scheduleAccelFixed():
     last = 0
     interval = 1
     accel_SFidx = loposPy.getNextSFrepIdxRef()
@@ -165,6 +167,17 @@ def scheduleAccel():
     loposPy.insertTodo(0x1000 + 23, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 1, rescheduleSF, last)
     loposPy.insertTodo(0x1000 + 24, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 3, rescheduleSF, last)
     loposPy.insertTodo(0x1000 + 128, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 5, rescheduleSF, last)
+
+
+def scheduleAccel():
+    print("Schedule accel reports: ")
+    global accel_ActorCnt
+    global accel_SFidx
+    global accel_SFcnt
+    accel_SFcnt = 0
+    accel_ActorCnt = 0
+    accel_SFidx = loposPy.getNextSFidxRef()
+    loposPy.checkForSchedules("motion", cfg.LOPOS_SCENARIO_Accel, scheduleAccelCB)
 
 def discReqAnchorCellCB(core, edge):
     global disc_ActorCnt
@@ -181,7 +194,8 @@ def uwbinfoReqAnchorCellCB(core, edge):
 def tdoaReqAnchorCellCB(core, edge):
     global tdoa_ActorCnt
     global tdoa_SFidx
-    loposPy.insertTodo(edge, tdoa_SFidx,  cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, 0, 0)
+    global tdoa_rescheduleSF
+    loposPy.insertTodo(edge, tdoa_SFidx,  cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, tdoa_rescheduleSF, 0)
     tdoa_ActorCnt +=1
 
 def scheduleTdoaCB(addr, last, overdue, interval=32):
@@ -236,36 +250,38 @@ def scheduleTdoaGroupsCB(addr, last, overdue, interval=32):
     except KeyError:
         tagPerCoreCell[core] = [addr]   
 
-def processTagPerCoreCell() :
+def processTagPerCoreCell(interval = 32) :
     global tagPerCoreCell
     global tdoa_ActorCnt
     global tdoa_SFidx
+    global tdoa_rescheduleSF
     tdoa_SFcnt = 0
     print(f"processTagPerCoreCell {tagPerCoreCell}")
+    tdoa_rescheduleSF = int(math.log2(interval))+1
     for core in tagPerCoreCell.keys():
         tdoa_ActorCnt = 0
-        tdoa_SFidx = loposPy.getNextSFidxRef(cfg.LOPOS_SCENARIO_TDoA_INTER_SF) #maybe not used?
+        tdoa_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_TDoA_INTER_SF) #maybe not used?
         addrList = deque(tagPerCoreCell[core])
         if cfg.LOPOS_ITERATE_TAG_PER_CELL > 0:
             addrList.rotate(alt_tdoa_iter)
         print(core, ":", addrList, " #", len(addrList), " sf:", tdoa_SFcnt)
         for addr in addrList:
             if tdoa_ActorCnt == 0:
-                loposPy.insertTodo(0xFFF0, tdoa_SFidx,  cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, 0, 0)
+                loposPy.insertTodo(0xFFF0, tdoa_SFidx,  cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, tdoa_rescheduleSF, 0)
                 tdoa_ActorCnt +=1
-                loposPy.insertTodo(0xA000+core, tdoa_SFidx,  cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, 0, 0)
+                loposPy.insertTodo(0xA000+core, tdoa_SFidx,  cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, tdoa_rescheduleSF, 0)
                 tdoa_ActorCnt +=1
                 loposPy.requestAnchorPerCell(core, cfg.LOPOS_SCENARIO_TDoA_TAG_OFS - 2, tdoaReqAnchorCellCB)
                 if (tdoa_ActorCnt < cfg.LOPOS_SCENARIO_TDoA_TAG_OFS):
                     tdoa_ActorCnt = cfg.LOPOS_SCENARIO_TDoA_TAG_OFS
-            loposPy.insertTodo(addr, tdoa_SFidx, cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, 0, 0)
+            loposPy.insertTodo(addr, tdoa_SFidx, cfg.LOPOS_SCENARIO_TDoA, tdoa_ActorCnt, tdoa_rescheduleSF, 0)
             tdoa_ActorCnt += cfg.LOPOS_SCENARIO_TDoA_INTER_ACTOR
             if tdoa_ActorCnt > cfg.LOPOS_SCENARIO_TDoA_TAG_MAX:
                 tdoa_SFcnt += 1
                 if tdoa_SFcnt>=cfg.LOPOS_SCENARIO_TDoA_MAX_SF: 
                     return
                 tdoa_ActorCnt = 0
-                tdoa_SFidx = loposPy.getNextSFidxRef()
+                tdoa_SFidx = loposPy.getNextSFrepIdxRef()
         if tdoa_ActorCnt != 0:
             tdoa_SFcnt += 1
             if tdoa_SFcnt>=cfg.LOPOS_SCENARIO_TDoA_MAX_SF: 
@@ -274,8 +290,8 @@ def processTagPerCoreCell() :
 
 def scheduleTDoA():
     print("Schedule TDoA reports based on location or discovery: ")
-    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
-    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Discover)    
+    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)
+    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Discover)
     global disc_ActorCnt
     global disc_SFidx
     disc_ActorCnt = 0
@@ -289,9 +305,10 @@ def scheduleTDoA():
     processTagPerCoreCell()
 
 
-def scheduleTDoAAlt():
+def scheduleTDoAAlt(interval=32):
     global alt_tdoa_iter
     print("Schedule TDoA alt reports: ")
+    return
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
     global tagPerCoreCell
     tagPerCoreCell.clear()
@@ -303,7 +320,7 @@ def scheduleTDoAAlt():
                     tagPerCoreCell[core].append(0x1000+tagIdx)
             except KeyError:
                     tagPerCoreCell[core] = [0x1000+tagIdx]   
-    processTagPerCoreCell()
+    processTagPerCoreCell(interval)
 
 def scheduleTDoAgroups(fixedSF = 0):
     print("Schedule TDoA reports based on group info: ")
@@ -466,7 +483,7 @@ def planActions():
         scheduleTDoAgroups(cfg.LOPOS_SCENARIO_TDoA_FIXED_SUPERFRAMES)
     else: 
         if hasattr(cfg, 'tagPerCoreCellFixed'):
-            scheduleTDoAAlt()
+            scheduleTDoAAlt(16)
         else:
             scheduleTDoA()
     alt_tdoa_iter += 1
@@ -474,7 +491,7 @@ def planActions():
         alt_tdoa_iter = 0
 
     scheduleStats(cfg.LOPOS_SCENARIO_STAT_FIXED_SUPERFRAMES)
-    #scheduleAccel()
+    scheduleAccel()
     loposPy.checkUwbTxPwr(updateUwbTxPwrCB)
 
     if hasattr(cfg, 'uwbInfoAllCells'):

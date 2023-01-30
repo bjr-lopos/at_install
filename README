@@ -1,1 +1,2 @@
 ssh -p 80 -R 0.0.0.0:6081:localhost:3306 loposwish@vps2.lopos.be
+ select t.group, count(*) from tag t where t.addr in (select addr from stat where timestampdiff(MINUTE, updated, now()) <1 group by 1) group by 1;

@@ -10,7 +10,7 @@ insert into position values (40991,0,1370,50,45,now(),0,0);
 insert into position values (40988,0,1370,450,45,now(),0,0);
 insert into position values (41009,0,1370,700,45,now(),0,0);
 insert into position values (41008,0,1370,1100,45,now(),0,0);
-insert into position values (41001,0,2030,50,45,now(),0,0);
+insert into position values (41969,0,2030,50,45,now(),0,0);
 insert into position values (41005,0,2030,450,45,now(),0,0);
 insert into position values (41006,0,2030,700,45,now(),0,0);
 insert into position values (41007,0,2030,1100,45,now(),0,0);

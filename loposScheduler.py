@@ -136,7 +136,7 @@ def scheduleAccelCB(addr, last, overdue, interval=32):
     global accel_ActorCnt
     global accel_SFidx
     global accel_SFcnt
-    if (accel_SFcnt > cfg.LOPOS_SCENARIO_Accel_MAX_SF):
+    if (accel_SFcnt > cfg.LOPOS_SCENARIO_ACCEL_MAX_SF):
         return
     #print("scheduleAccelCB: " + hex(addr) + " "+ last + " "+ str(overdue)+ "s"  )
     rescheduleSF = 0
@@ -146,10 +146,10 @@ def scheduleAccelCB(addr, last, overdue, interval=32):
         loposPy.insertTodo(0xFFF0, accel_SFidx,  cfg.LOPOS_SCENARIO_Accel, accel_ActorCnt, rescheduleSF, last)
         accel_ActorCnt +=1
     loposPy.insertTodo(addr, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, accel_ActorCnt, rescheduleSF, last)
-    accel_ActorCnt +=2
-    if accel_ActorCnt > 10:
+    accel_ActorCnt += cfg.LOPOS_SCENARIO_ACCEL_INTER_ACTOR
+    if accel_ActorCnt > cfg.LOPOS_SCENARIO_ACCEL_DEV_MAX:
         accel_ActorCnt = 0
-        accel_SFidx = loposPy.getNextSFidxRef()
+        accel_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_ACCEL_INTER_SF)
         accel_SFcnt += 1
 
 def scheduleAccelFixed():
@@ -168,7 +168,6 @@ def scheduleAccelFixed():
     loposPy.insertTodo(0x1000 + 24, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 3, rescheduleSF, last)
     loposPy.insertTodo(0x1000 + 128, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 5, rescheduleSF, last)
 
-
 def scheduleAccel():
     print("Schedule accel reports: ")
     global accel_ActorCnt
@@ -176,8 +175,58 @@ def scheduleAccel():
     global accel_SFcnt
     accel_SFcnt = 0
     accel_ActorCnt = 0
-    accel_SFidx = loposPy.getNextSFidxRef()
+    accel_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_ACCEL_INTER_SF)
     loposPy.checkForSchedules("motion", cfg.LOPOS_SCENARIO_Accel, scheduleAccelCB)
+
+def scheduleAccelFixedTags(interval=32):
+    print("Schedule accel reports: ")
+    global accel_ActorCnt
+    global accel_SFidx
+    global accel_SFcnt
+    accel_SFcnt = 0
+    accel_ActorCnt = 0
+    accel_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_ACCEL_INTER_SF)
+
+    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Accel)
+    for core in cfg.tagPerCoreCellFixed.keys():
+        cnt = 0
+        for tagIdx in cfg.tagPerCoreCellFixed[core]:
+            scheduleAccelCB(0x1000 + tagIdx, 0, 0, interval)
+            cnt = cnt +1 
+            if cnt >= 2: # first x number of every group
+                break
+
+def scheduleAccel3s():
+    print("Schedule accel reports 3s: ")
+    global accel_ActorCnt
+    global accel_SFidx
+    global accel_SFcnt
+    accel_SFcnt = 0
+    accel_ActorCnt = 0
+    accel_SFidx = loposPy.getNextSFidxRef()
+    startBlockOfs = accel_SFidx % cfg.LOPOS_SF_BLOCK_SIZE
+    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Accel)
+
+    numDev = len(cfg.tag3sAccelFixed)
+    devIdx = 0
+    reps = 0
+    refIdx=devIdx
+    while True: 
+        scheduleAccelCB(0x1000+cfg.tag3sAccelFixed[devIdx], 0, 0)
+        devIdx = devIdx + 1
+        if ( (accel_ActorCnt == 0) and ( startBlockOfs == accel_SFidx % cfg.LOPOS_SF_BLOCK_SIZE )) or (devIdx >= numDev):
+            reps = reps + 1
+            while startBlockOfs != accel_SFidx % cfg.LOPOS_SF_BLOCK_SIZE:
+                accel_SFidx = loposPy.getNextSFidxRef()
+                accel_ActorCnt = 0
+            if (reps < 3) :
+                devIdx = refIdx
+                continue
+            else:
+                if devIdx >= numDev :
+                    break
+                reps = 0
+                refIdx=devIdx
 
 def discReqAnchorCellCB(core, edge):
     global disc_ActorCnt
@@ -308,7 +357,6 @@ def scheduleTDoA():
 def scheduleTDoAAlt(interval=32):
     global alt_tdoa_iter
     print("Schedule TDoA alt reports: ")
-    return
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
     global tagPerCoreCell
     tagPerCoreCell.clear()
@@ -491,7 +539,16 @@ def planActions():
         alt_tdoa_iter = 0
 
     scheduleStats(cfg.LOPOS_SCENARIO_STAT_FIXED_SUPERFRAMES)
-    scheduleAccel()
+
+    if hasattr(cfg, 'tag3sAccelFixed'):
+        scheduleAccel3s()
+    else:
+        if hasattr(cfg, 'tagPerCoreCellFixed'):
+            scheduleAccelFixedTags(16)
+        else:
+            scheduleAccel()
+
+
     loposPy.checkUwbTxPwr(updateUwbTxPwrCB)
 
     if hasattr(cfg, 'uwbInfoAllCells'):

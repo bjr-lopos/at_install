@@ -581,9 +581,15 @@ def initSFrepIdxRef():
     SFrepIdxRef = claimRepeatingAndfixedSF(0)
     return SFrepIdxRef
 
-def getNextSFrepIdxRef(inter_sf = 1):
+def getNextSFrepIdxRef(inter_sf = 1, allowed_ofs=None):
     global SFrepIdxRef 
-    SFrepIdxCurr = SFrepIdxRef
-    SFrepIdxRef = claimRepeatingAndfixedSF(SFrepIdxCurr+inter_sf)
+    if allowed_ofs is None:
+        allowed_ofs = [0,1,2,3,4,5,6,7]
+    while True:
+        SFrepIdxCurr = SFrepIdxRef
+        SFrepIdxRef = claimRepeatingAndfixedSF(SFrepIdxCurr+inter_sf)
+        blockOfs = SFrepIdxCurr % cfg.LOPOS_SF_BLOCK_SIZE
+        if blockOfs in allowed_ofs: 
+            break
     return SFrepIdxCurr
 

@@ -149,7 +149,7 @@ def scheduleAccelCB(addr, last, overdue, interval=32):
     accel_ActorCnt += cfg.LOPOS_SCENARIO_ACCEL_INTER_ACTOR
     if accel_ActorCnt > cfg.LOPOS_SCENARIO_ACCEL_DEV_MAX:
         accel_ActorCnt = 0
-        accel_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_ACCEL_INTER_SF)
+        accel_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_ACCEL_INTER_SF, cfg.LOPOS_SCENARIO_ACCEL_SUPERFRAMES_MOD)
         accel_SFcnt += 1
 
 def scheduleAccelFixed():
@@ -185,7 +185,7 @@ def scheduleAccelFixedTags(interval=32):
     global accel_SFcnt
     accel_SFcnt = 0
     accel_ActorCnt = 0
-    accel_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_ACCEL_INTER_SF)
+    accel_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_ACCEL_INTER_SF, cfg.LOPOS_SCENARIO_ACCEL_SUPERFRAMES_MOD)
 
     loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_Accel)
     for core in cfg.tagPerCoreCellFixed.keys():
@@ -309,7 +309,7 @@ def processTagPerCoreCell(interval = 32) :
     tdoa_rescheduleSF = int(math.log2(interval))+1
     for core in tagPerCoreCell.keys():
         tdoa_ActorCnt = 0
-        tdoa_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_TDoA_INTER_SF) #maybe not used?
+        tdoa_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_TDoA_INTER_SF, cfg.LOPOS_SCENARIO_TDoA_SUPERFRAMES_MOD) #maybe not used?
         addrList = deque(tagPerCoreCell[core])
         if cfg.LOPOS_ITERATE_TAG_PER_CELL > 0:
             addrList.rotate(alt_tdoa_iter)
@@ -330,7 +330,7 @@ def processTagPerCoreCell(interval = 32) :
                 if tdoa_SFcnt>=cfg.LOPOS_SCENARIO_TDoA_MAX_SF: 
                     return
                 tdoa_ActorCnt = 0
-                tdoa_SFidx = loposPy.getNextSFrepIdxRef()
+                tdoa_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_TDoA_INTER_SF, cfg.LOPOS_SCENARIO_TDoA_SUPERFRAMES_MOD)
         if tdoa_ActorCnt != 0:
             tdoa_SFcnt += 1
             if tdoa_SFcnt>=cfg.LOPOS_SCENARIO_TDoA_MAX_SF: 
@@ -544,7 +544,7 @@ def planActions():
         scheduleAccel3s()
     else:
         if hasattr(cfg, 'tagPerCoreCellFixed'):
-            scheduleAccelFixedTags(16)
+            scheduleAccelFixedTags(1)
         else:
             scheduleAccel()
 

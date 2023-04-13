@@ -1,15 +1,22 @@
 import sys
 import blessed
 import loposPyLib as loposPy
+import localConfig as cfg
 
 term = None
 ref_pos = None
 
-def plot(scheduleAT, marker= "*"):
-    with term.location(1 + scheduleAT//8, ref_pos[0] - ( 8 - scheduleAT%8)):
-            print(marker, end='')
-
-
+def plot(scheduleAT, marker= "*", rep = 32):
+    y = ref_pos[0] - ( 8 - scheduleAT%8)
+    x = scheduleAT//8
+    xofs = x
+    while True:
+        with term.location(1 + xofs, y):
+                print(marker, end='')
+        xofs = (xofs + rep) % 32
+        if xofs == x:
+            break
+        
 
 def grabSchedules():
     sql = """
@@ -43,6 +50,11 @@ order by
     for schedule in records:
         marker = "?"
         scheduleAT = schedule[3]
+        rescheduleSF = schedule[6]
+        if rescheduleSF > 0:
+            interval = 2 ** ( schedule[6] - 1)
+        else: 
+            interval = 32
         if schedule[4] == 0:
             marker = "s"
         if schedule[4] == 8:
@@ -51,7 +63,7 @@ order by
             marker = "A"
         if schedule[4] == 12:
             marker = "S"
-        plot(scheduleAT, marker)
+        plot(scheduleAT, marker, interval)
 
 
 def print_cursor_location():
@@ -67,9 +79,21 @@ def prep_table():
     for i in range(8):
         print(str(i) + "\n", end='')
 
+def add_provision_slots():
+    prov_slot = 0
+    adjust2allowedOffsets = {0:0, 1:0, 2:6, 3:5, 4:4, 5:3, 6:2, 7:1}  
+    while prov_slot <= cfg.LOPOS_LAST_FIXED_SF:
+        plot(prov_slot, "p")
+        prov_slot =  prov_slot + 1
+        blockOfs = prov_slot % cfg.LOPOS_SF_BLOCK_SIZE
+        prov_slot += adjust2allowedOffsets[blockOfs]
+
+
 term = blessed.Terminal()
 prep_table()
 ref_pos = term.get_location()
+add_provision_slots()
+
 loposPy.initDB()
 grabSchedules()
 print("------------------------------")

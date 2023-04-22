@@ -2,12 +2,20 @@
 #!/usr/bin/env python
 #import preprocessing
 #https://docs.google.com/spreadsheets/d/1hlPdLZNVLzAVun_0xauACNL0RsyeQtXfn7ipNn1hu0M/edit#gid=0
-mysql = {
+__mysql = {
     "host": "localhost",
     "user": "wish",
     "passwd": "w1sh",
     "db": "wish",
 }
+
+mysql = {
+    "host": "localhost",
+    "user": "lopos_test",
+    "passwd": "lopos_test",
+    "db": "lopos_test",
+}
+
 
 #testFwd=1
 #testAnchor=1

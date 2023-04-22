@@ -10,6 +10,13 @@ fi
 startDateTime=$1
 endDateTime=$2
 
+position_table=position
+if [ ! -z "$3" ]; then
+        position_table=$3
+fi
+
+
+
 resFile="/tmp/grab_$startDateTime"_"$endDateTime@`date`.csv"
 resFile=`echo "$resFile" | sed -e 's/ /_/g'`
 #echo $resFile
@@ -17,7 +24,7 @@ sql=`cat << EndOfMessage
 select 
 	addr&0xFFF, x, y, updated 
 from 
-	position
+	$position_table
 where
 	numHyperbola > 2
 	and 
@@ -35,5 +42,10 @@ EndOfMessage`
 #mysql --local-infile -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
 mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
 echo results can be found at $resFile
+sudo chmod o+r $resFile
+sudo chown lopos:lopos $resFile
+finFile="/tmp/wish/grab_pos_$startDateTime"_"$endDateTime@`date`.csv"
+finFile=`echo "$finFile" | sed -e 's/ /_/g'`
+mv $resFile $finFile
 
 

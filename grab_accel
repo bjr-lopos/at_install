@@ -1,3 +1,4 @@
+
 lclDir=`dirname $0`
 . $lclDir/local_cfg
 #GRANT FILE ON *.* TO 'voc'@'localhost';
@@ -9,6 +10,10 @@ fi
 
 startDateTime=$1
 endDateTime=$2
+motion_table=motion
+if [ ! -z "$3" ]; then
+	motion_table=$3
+fi
 
 resFile="/tmp/grab_accel_$startDateTime"_"$endDateTime@`date`.csv"
 resFile=`echo "$resFile" | sed -e 's/ /_/g'`
@@ -19,7 +24,7 @@ select
 	date_format(subtime(updated, sec_to_time((19.0-idx)/20.0)), "%d-%c %T.%f")  as ts,
 	x * 2 as x , y * 2 as y, z * 2 as z
 from 
-	motion
+	$motion_table
 where
 	( (idx < 18) or (sqrt( x*x + y*y + z*z) > 480) )
 	and

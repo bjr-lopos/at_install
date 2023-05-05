@@ -1,6 +1,6 @@
 #alter table motion rename motion_round3_1; create table motion like motion_round3_1;
 #sshfs -p 80 loposwish@vps2.lopos.be:/home/loposwish/wish /tmp/wish
-for I in 11 12 13 14 15 16 17 18 19 20 21 22; do
+for I in 22 23 24 25 26 27 28 29 30; do
 #for I in 11; do
-	./grab "2023-04-$I 00:00:00.000" "2023-04-$I 23:59:59" position_round3_2
+	./grab "2023-04-$I 00:00:00.000" "2023-04-$I 23:59:59" position
 done

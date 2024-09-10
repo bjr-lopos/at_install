@@ -11,11 +11,12 @@ fi
 startDateTime=$1
 endDateTime=$2
 motion_table=motion
+echo invoked: $*
 if [ ! -z "$3" ]; then
 	motion_table=$3
 fi
 
-resFile="/tmp/grab_accel_$startDateTime"_"$endDateTime@`date`.csv"
+resFile="/var/lib/mysql-files/grab_accel_$startDateTime"_"$endDateTime@`date`.csv"
 resFile=`echo "$resFile" | sed -e 's/ /_/g'`
 #echo $resFile
 sql=`cat << EndOfMessage
@@ -40,7 +41,7 @@ ESCAPED BY '\"'
 LINES TERMINATED BY '\r\n';
 EndOfMessage`
 #mysql --local-infile -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
-mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql" >/dev/null 2>&1
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql" >grab.log 2>&1
 echo results can be found at $resFile
 echo "columns are: tag_id, timestamp, x, y, z"
 sudo chmod o+r $resFile

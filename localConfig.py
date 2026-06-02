@@ -15,7 +15,7 @@ mysql = {
 #testAccel=1
 #testDiscover=1
 #testUWB=1
-uwbInfoAllCells=1
+# uwbInfoAllCells=1   # disabled: UWB-all-cells is driven by the plan table (scenario 13) via scheduleCellSyncTest; enabling this too double-schedules and overflows the hyperframe
 #altIUwbInfolvoScan=1
 scheduleTDoAwGroups=1
 
@@ -75,9 +75,9 @@ LOPOS_SCENARIO_ACCEL_SUPERFRAMES_MOD=[6,7]
 #4:[2,3,8,9,11,12,15,16,18,21,26,28,29,31,32,40,42,47,51,52,53,60,70,76,77,82,84,101]
 #}
 
-tagPerCoreCellFixed={
-1:[21,95,129,143]
-}
+#tagPerCoreCellFixed={
+#1:[21,95,129,143]
+#}
 
 
 #TDOA2POS_OFFSET_X=100

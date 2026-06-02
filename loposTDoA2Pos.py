@@ -204,10 +204,15 @@ def on_message(client, userdata, message):
     payload=str(message.payload.decode("utf-8"))
     #print(message.topic)
     if(message.topic == "loposcore/ddoa"): 
-        #payloadJson = json.loads(message.payload.decode(r.info().get_param('charset') or 'utf-8'))    
-        payloadJson = json.loads(payload)    
-        #print(payloadJson)
-        calculateAndPlotPosition(payloadJson)
+        #payloadJson = json.loads(message.payload.decode(r.info().get_param('charset') or 'utf-8'))
+        try:
+            payloadJson = json.loads(payload)
+            #print(payloadJson)
+            calculateAndPlotPosition(payloadJson)
+        except json.JSONDecodeError as ex:
+            print("Oops!  That was no valid json on", message.topic, "->", repr(payload), ":", ex)
+        except Exception as ex:
+            print("error handling ddoa message ->", repr(payload), ":", ex)
 
 
 # The function whose square is to be minimised.

@@ -133,7 +133,7 @@ def getPositionCoreAnchors():
             and 
             position.addr=anchor.addr
             and
-            numHyperbola = 0;
+            IFNULL(numHyperbola,0) = 0;
     """
     records = wrappedSql(sql, {})
     for core in records:
@@ -545,7 +545,7 @@ def keepOutRepeatingAndfixedSF(SFid):
     if SFid <= cfg.LOPOS_LAST_FIXED_SF:
         SFid = cfg.LOPOS_LAST_FIXED_SF + 1
     if SFid >cfg.LOPOS_LAST_USABLE_SF:
-        loposPy.deleteOldSchedules(0)
+        deleteOldSchedules(0)
         print("ERROR: Hyperframe !")
         sys.exit()
     blockOfs = SFid % cfg.LOPOS_SF_BLOCK_SIZE
@@ -557,7 +557,7 @@ def claimRepeatingAndfixedSF(SFid):
     if SFid <= cfg.LOPOS_FIRST_REPEAT_SF:
         SFid = cfg.LOPOS_FIRST_REPEAT_SF+ 1
     if SFid >cfg.LOPOS_LAST_USABLE_SF:
-        loposPy.deleteOldSchedules(0)
+        deleteOldSchedules(0)
         print("ERROR: Hyperframe overstressed!")
         sys.exit()
     blockOfs = SFid % cfg.LOPOS_SF_BLOCK_SIZE

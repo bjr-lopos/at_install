@@ -1,6 +1,5 @@
 delete from cell;
 
-
 insert into cell values (0, 1);
 insert into cell values (0, 2);
 insert into cell values (0, 3);
@@ -9,6 +8,14 @@ insert into cell values (0, 5);
 insert into cell values (0, 6);
 insert into cell values (0, 7);
 insert into cell values (0, 8);
+insert into cell values (20, 12);
+insert into cell values (20, 13);
+insert into cell values (20, 14);
+insert into cell values (20, 15);
+insert into cell values (20, 16);
+insert into cell values (20, 17);
+insert into cell values (20, 18);
+insert into cell values (20, 19);
 insert into cell values (11, 9);
 insert into cell values (11, 10);
 insert into cell values (11, 23);
@@ -16,4 +23,25 @@ insert into cell values (11, 24);
 insert into cell values (11, 27);
 insert into cell values (11, 28);
 insert into cell values (11, 29);
-
+insert into cell values (32, 25);
+insert into cell values (32, 33);
+insert into cell values (32, 34);
+insert into cell values (32, 35);
+insert into cell values (32, 36);
+insert into cell values (32, 37);
+insert into cell values (38, 39);
+insert into cell values (38, 40);
+insert into cell values (38, 41);
+insert into cell values (38, 42);
+insert into cell values (38, 43);
+insert into cell values (38, 44);
+insert into cell values (26, 31);
+insert into cell values (26, 46);
+insert into cell values (26, 47);
+insert into cell values (26, 48);
+insert into cell values (26, 49);
+insert into cell values (26, 50);
+insert into cell values (30, 2);
+insert into cell values (30, 31);
+insert into cell values (30, 46);
+insert into cell values (30, 45);

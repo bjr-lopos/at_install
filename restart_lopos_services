@@ -1,13 +1,6 @@
 #!/bin/bash
 pwd=`dirname $0` 
-cd $pwd
-sudo service loposplan restart
 sudo service loposcore restart
 sudo service loposmath restart
-#python3 -c "import sys; [print('{}:'.format(path), end= '') for path in sys.path]"
-PYTHONPATH=/usr/lib/python38.zip:/usr/lib/python3.8:/usr/lib/python3.8/lib-dynload:/home/lopos/.local/lib/python3.8/site-packages:/usr/local/lib/python3.8/dist-packages:/usr/lib/python3/dist-packages
-export PYTHONPATH=$PYTHONPATH
-python3 loposAdmin.py sink 0 reset 0
-python3 loposAdmin.py sink 0 reset 0
-python3 loposAdmin.py all 0 reset 0
-cd -
+sudo service loposplan restart
+$pwd/fix_tz.sh

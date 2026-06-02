@@ -151,14 +151,20 @@ def scheduleAccelCB(addr, last, overdue, interval=32):
         accel_SFcnt += 1
 
 def scheduleAccel():
-    print("Schedule accel reports: ")
-    global accel_ActorCnt
-    global accel_SFidx
-    global accel_SFcnt
-    accel_SFcnt = 0
-    accel_ActorCnt = 0
+    last = 0
+    interval = 1
     accel_SFidx = loposPy.getNextSFrepIdxRef()
-    loposPy.checkForSchedules("motion", cfg.LOPOS_SCENARIO_Accel, scheduleAccelCB)
+    rescheduleSF = int(math.log2(interval))+1
+    print("Schedule accel reports at : " + str(interval) + " : " + str(rescheduleSF) )
+    loposPy.insertTodo(0xFFF0, accel_SFidx,  cfg.LOPOS_SCENARIO_Accel, 0, rescheduleSF, last)
+    loposPy.insertTodo(0x1000 + 15, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 1, rescheduleSF, last)
+    loposPy.insertTodo(0x1000 + 21, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 3, rescheduleSF, last)
+    loposPy.insertTodo(0x1000 + 22, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 5, rescheduleSF, last)
+    accel_SFidx = loposPy.getNextSFrepIdxRef()
+    loposPy.insertTodo(0xFFF0, accel_SFidx,  cfg.LOPOS_SCENARIO_Accel, 0, rescheduleSF, last)
+    loposPy.insertTodo(0x1000 + 23, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 1, rescheduleSF, last)
+    loposPy.insertTodo(0x1000 + 24, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 3, rescheduleSF, last)
+    loposPy.insertTodo(0x1000 + 128, accel_SFidx, cfg.LOPOS_SCENARIO_Accel, 5, rescheduleSF, last)
 
 def discReqAnchorCellCB(core, edge):
     global disc_ActorCnt

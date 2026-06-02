@@ -9,21 +9,24 @@ echo will use delay $delay
 source $lclDir/local_cfg
 sql=`cat << EndOfMessage
 select
-	updated,
-	devTx &0x0FFF as devTx,
-	devRx &0x0FFF as devRx,
-	rxPow
+	devA & 0xFFF as devA,
+	devB & 0xFFF as debB,
+	min(dist),
+	avg(dist),
+	max(dist),
+	count(*)
+
 from 
-	uwbstat
-where 
-	devRx in (0xA01B, 0xA01C, 0xA01D) and
-	devTx in (0xA01B, 0xA01C, 0xA01D) and
-	TIMESTAMPDIFF(HOUR,updated,now()) < 72
+	twr
+where
+	TIMESTAMPDIFF(HOUR,updated,now()) < 3
+group 
+	by devA, devB
 order
 	by 1
-INTO OUTFILE '/tmp/links_3_aug_2020.csv' FIELDS ENCLOSED BY '\"'  TERMINATED BY ';'  ESCAPED BY '\"'  LINES TERMINATED BY '\r\n';
 EndOfMessage`
 mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql" 
+#INTO OUTFILE '/tmp/links_3_aug_2020.csv' FIELDS ENCLOSED BY '\"'  TERMINATED BY ';'  ESCAPED BY '\"'  LINES TERMINATED BY '\r\n';
 
 
 

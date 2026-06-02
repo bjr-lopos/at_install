@@ -1,30 +1,38 @@
 lclDir=`dirname $0`
 source $lclDir/local_cfg
-#GRANT FILE ON *.* TO 'voc'@'localhost';
+#GRANT FILE ON *.* TO 'lopos'@'localhost';
 if [ -z "$1" ] | [ -z "$2" ]; then
-	echo please invoke like "$0 startDateTime endDateTime"
+	echo please invoke like "$0 startDateTime endDateTime [trackerId]"
 	echo "example: $0 2021-12-25 00:00:00 2021-12-25 10:00:00"
 	exit
 fi
 
 startDateTime=$1
 endDateTime=$2
+trackerId=0
+if [ ! -z $3 ]; then
+	trackerId=$3+4096
+fi
 
-resFile="/tmp/grab_$startDateTime"_"$endDateTime@`date`.csv"
+resFile="/tmp/grab_accel_$startDateTime"_"$endDateTime_$trackerId@`date`.csv"
 resFile=`echo "$resFile" | sed -e 's/ /_/g'`
 #echo $resFile
 sql=`cat << EndOfMessage
 select 
-	addr&0xFFF, x, y, updated 
+	1585692000 + (( m.asn div 512)  * 32)  + ((m.asn mod 512) /8) - (19 - m.idx)/20 as t,
+	m.addr - 0x1000 as tracker,
+	m.x * 4 as Xmg,
+	m.y * 4 as Ymg,
+	m.z * 4 as Zmg
 from 
-	position
+	motion as m
 where
-	numHyperbola > 2
-	and 
 	updated > "$startDateTime"
 	and
 	updated < "$endDateTime"
-order by 4
+	and
+	( m.addr = $trackerId or $trackerId = 0)
+order by 2,1
 INTO OUTFILE 
 	"$resFile"
 FIELDS ENCLOSED BY '\"'  
@@ -32,6 +40,7 @@ TERMINATED BY ';'
 ESCAPED BY '\"'  
 LINES TERMINATED BY '\r\n';
 EndOfMessage`
+#echo "$sql"
 #mysql --local-infile -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
 mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
 echo results can be found at $resFile

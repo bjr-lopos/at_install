@@ -1,0 +1,45 @@
+lclDir=`dirname $0`
+. $lclDir/local_cfg
+#GRANT FILE ON *.* TO 'voc'@'localhost';
+if [ -z "$1" ] | [ -z "$2" ]; then
+	echo please invoke like "$0 startDateTime endDateTime"
+	echo "example: $0 \"2022-07-01 00:00:00\" \"2022-07-01 23:59:59\""
+	exit
+fi
+
+startDateTime=$1
+endDateTime=$2
+
+resFile="/tmp/grab_accel_$startDateTime"_"$endDateTime@`date`.csv"
+resFile=`echo "$resFile" | sed -e 's/ /_/g'`
+#echo $resFile
+sql=`cat << EndOfMessage
+select 
+	addr&0xFFF, 
+	date_format(subtime(updated, sec_to_time((19.0-idx)/20.0)), "%d-%c %T.%f")  as ts,
+	x * 2 as x , y * 2 as y, z * 2 as z
+from 
+	motion
+where
+	( (idx < 18) or (sqrt( x*x + y*y + z*z) > 480) )
+	and
+	updated > "$startDateTime"
+	and
+	updated < "$endDateTime"
+order by 1,2
+INTO OUTFILE 
+	"$resFile"
+FIELDS ENCLOSED BY '\"'  
+TERMINATED BY ';'  
+ESCAPED BY '\"'  
+LINES TERMINATED BY '\r\n';
+EndOfMessage`
+#mysql --local-infile -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql"
+mysql -u$USERLOGIN -p$USERPASS $TARGET_DB -e "$sql" >/dev/null 2>&1
+echo results can be found at $resFile
+echo "columns are: tag_id, timestamp, x, y, z"
+sudo chmod o+r $resFile
+sudo chown lopos:lopos $resFile
+finFile="/tmp/wish/grab_accel_$startDateTime"_"$endDateTime@`date`.csv"
+finFile=`echo "$finFile" | sed -e 's/ /_/g'`
+mv $resFile $finFile

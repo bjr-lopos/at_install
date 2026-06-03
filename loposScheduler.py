@@ -25,7 +25,7 @@ disc_SFidx=0
 tdoa_ActorCnt=0
 tdoa_SFidx=0
 tdoa_interval = 32
-tdoa_rescheduleSF = int(math.log2(tdoa_interval))+1
+tdoa_rescheduleSF = 0   # one-shot TDoA (no device auto-repeat); see processTagPerCoreCell
 uwb_ActorCnt = 0
 uwb_SFidx = 0
 
@@ -306,7 +306,7 @@ def processTagPerCoreCell(interval = 32) :
     global tdoa_rescheduleSF
     tdoa_SFcnt = 0
     print(f"processTagPerCoreCell {tagPerCoreCell}")
-    tdoa_rescheduleSF = int(math.log2(interval))+1
+    tdoa_rescheduleSF = 0   # one-shot TDoA (reverted from int(log2(interval))+1): repeat>0 set the device .repeat flag so edges auto-repeated their sync role across hyperframes; when a tag's core rotated and re-provisioning lagged, stale edges reported the old sync -> storeTdoaResult mismatch storm (esp. dense grp3/4 herd)
     for core in tagPerCoreCell.keys():
         tdoa_ActorCnt = 0
         tdoa_SFidx = loposPy.getNextSFrepIdxRef(cfg.LOPOS_SCENARIO_TDoA_INTER_SF, cfg.LOPOS_SCENARIO_TDoA_SUPERFRAMES_MOD) #maybe not used?

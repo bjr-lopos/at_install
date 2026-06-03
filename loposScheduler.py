@@ -31,7 +31,8 @@ tdoa_rescheduleSF = 0   # one-shot TDoA. Re-enable the repeating line below only
 uwb_ActorCnt = 0
 uwb_SFidx = 0
 
-scan_candidates = {}   # {core_id:[edge_ids]} active broad-UWB scan set; set via MQTT "loposcore/scan"
+scan_rounds = []       # [{"tx":[ids],"rx":[ids]}] packed broad-UWB scan rounds; set via MQTT "loposcore/scan"
+scan_offset = 0        # rotation cursor into scan_rounds: which round to resume scheduling each HF
 
 alt_tdoa_iter = 0
 
@@ -405,27 +406,55 @@ def uwbInfoAllCells():
         loposPy.insertTodo(40960+core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
 
 def uwbScanCells():
-    # Admin/curateCells-driven BROAD UWB scan over the in-memory `scan_candidates`
-    # ({core_id:[edge_ids]}, set via the MQTT "loposcore/scan" topic). Called from planActions
-    # each hyperframe while scan_candidates is non-empty, so it stays HF-synced and survives
-    # cleanupScenario(Uwb). getNextSFidxRef() grabs a free SF in the HF; a guard SF before and
-    # after each round. Sink 0xFFF0 @ actor 0, edges @ actors 1.., core (transmitter) @ UWB_TAG_OFS.
+    # Admin/curateCells-driven BROAD UWB scan over the in-memory `scan_rounds`
+    # ([{"tx":[ids],"rx":[ids]}], set via the MQTT "loposcore/scan" topic; empty stops it).
+    # Each round packs (like analyzeOpportunities) sink 0xFFF0 @ actor 0, up to UWB_TAG_OFS-1 (8)
+    # receivers @ actors 1.., then up to UWB_TAG_MAX (14) transmitters @ actors UWB_TAG_OFS.. ->
+    # one SF measures every tx->rx pair at once. Called from planActions each HF while non-empty,
+    # so it stays HF-synced and survives cleanupScenario(Uwb).
+    #
+    # The scan shares the hyperframe with the normal plan, which has already consumed SFs up from
+    # LOPOS_LAST_FIXED_SF; each round + its trailing guard is snapped to whole SF blocks. Reserve
+    # ~3 blocks per round and stop once the free budget runs out -- leftover rounds are scheduled
+    # in following HFs (rotating cursor), so the full set spreads across HFs instead of overflowing
+    # one. getNextSFidxRef() sys.exit()s past LOPOS_LAST_USABLE_SF, so check room before every call.
     global uwb_ActorCnt
     global uwb_SFidx
-    print("Schedule uwbScanCells (candidate scan):", len(scan_candidates), "cores")
-    loposPy.getNextSFidxRef()                           # leading guard SF (separate scan from the normal plan)
-    for core, edges in scan_candidates.items():
+    global scan_offset
+    rounds = scan_rounds
+    n = len(rounds)
+    if n == 0:
+        return
+    need = 3 * cfg.LOPOS_SF_BLOCK_SIZE
+    scheduled = 0
+    for i in range(n):
+        if loposPy.SFidxRef + need > cfg.LOPOS_LAST_USABLE_SF:
+            break                                       # no room left this HF; rest go next HF
+        rnd = rounds[(scan_offset + i) % n]
+        rx = rnd.get("rx", [])[:cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1]   # up to 8 receivers @ actors 1..8
+        tx = rnd.get("tx", [])[:cfg.LOPOS_SCENARIO_UWB_TAG_MAX]       # up to 14 transmitters @ actors 9..
+        if not rx or not tx:
+            continue
+        if scheduled == 0:
+            loposPy.getNextSFidxRef()                   # leading guard SF (only once we will scan)
         uwb_SFidx = loposPy.getNextSFidxRef()           # free SF for the scenario-13 round
         uwb_ActorCnt = 0
         loposPy.insertTodo(0xFFF0, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
         uwb_ActorCnt += 1
-        for edge in edges[:cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1]:
-            loposPy.insertTodo(40960 + edge, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        for r in rx:
+            loposPy.insertTodo(40960 + int(r), uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
             uwb_ActorCnt += 1
         if (uwb_ActorCnt < cfg.LOPOS_SCENARIO_UWB_TAG_OFS):
-            uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
-        loposPy.insertTodo(40960 + core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
-        loposPy.getNextSFidxRef()                       # trailing guard == gap before the next round (2 SF/core)
+            uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS            # transmitters start @ actor 9
+        for t in tx:
+            loposPy.insertTodo(40960 + int(t), uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+            uwb_ActorCnt += 1
+        loposPy.getNextSFidxRef()                       # trailing guard == gap before next round
+        scheduled += 1
+    if scheduled:
+        scan_offset = (scan_offset + scheduled) % n
+    print("Schedule uwbScanCells (candidate scan): %d/%d rounds this HF, cursor->%d, SFidx=%d"
+          % (scheduled, n, scan_offset, loposPy.SFidxRef))
 
 def scheduleCellSyncTest():
     print("Schedule cell sync test: ")
@@ -584,7 +613,7 @@ def planActions():
     if hasattr(cfg, 'altIUwbInfolvoScan'):
         altIUwbInfolvoScan()
     scheduleCellSyncTest()
-    if scan_candidates:                    # admin/curateCells candidate UWB scan active (set via MQTT)
+    if scan_rounds:                        # admin/curateCells broad UWB scan active (set via MQTT)
         uwbScanCells()
 
     if hasattr(cfg, 'testAnchor'):
@@ -653,13 +682,15 @@ def on_message(client, userdata, message):
         #print(payloadJson)
         planActions()
     if(message.topic == "loposcore/scan"):
-        # broad-UWB scan candidate set {core_id:[edge_ids]} (empty/"{}" stops the scan).
+        # broad-UWB scan rounds [{"tx":[ids],"rx":[ids]}] (empty list/"[]" stops the scan).
         # planActions() schedules these each HF (HF-synced, free SFs); curateCells drives it.
-        global scan_candidates
+        global scan_rounds, scan_offset
         try:
-            d = json.loads(payload) if payload.strip() else {}
-            scan_candidates = {int(k): [int(e) for e in v] for k, v in d.items()}
-            print("scan_candidates updated:", len(scan_candidates), "cores")
+            d = json.loads(payload) if payload.strip() else []
+            scan_rounds = [{"tx": [int(t) for t in r.get("tx", [])],
+                            "rx": [int(x) for x in r.get("rx", [])]} for r in d]
+            scan_offset = 0
+            print("scan_rounds updated:", len(scan_rounds), "rounds")
         except Exception as ex:
             print("bad loposcore/scan payload:", ex)
 

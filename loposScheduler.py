@@ -13,6 +13,7 @@ import loposPyLib as loposPy
 import localConfig as cfg
 import numpy as np
 import math
+import json
 
 
 print = functools.partial(print, flush=True)
@@ -29,6 +30,8 @@ tdoa_rescheduleSF = 0   # one-shot TDoA. Re-enable the repeating line below only
 #tdoa_rescheduleSF = int(math.log2(tdoa_interval))+1
 uwb_ActorCnt = 0
 uwb_SFidx = 0
+
+scan_candidates = {}   # {core_id:[edge_ids]} active broad-UWB scan set; set via MQTT "loposcore/scan"
 
 alt_tdoa_iter = 0
 
@@ -402,24 +405,26 @@ def uwbInfoAllCells():
         loposPy.insertTodo(40960+core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
 
 def uwbScanCells():
-    # Admin/curateCells-driven BROAD UWB scan over candidate links in `scancell`.
-    # Mirrors uwbInfoAllCells but reads scancell instead of cell; runs every hyperframe while
-    # scancell is populated, so it survives planActions' cleanupScenario(Uwb). getNextSFidxRef()
-    # grabs a free SF in the HF (after the normal plan); a guard SF is left before and after each
-    # scenario-13 SF. Sink 0xFFF0 @ actor 0, edges @ actors 1.., core (transmitter) @ UWB_TAG_OFS.
+    # Admin/curateCells-driven BROAD UWB scan over the in-memory `scan_candidates`
+    # ({core_id:[edge_ids]}, set via the MQTT "loposcore/scan" topic). Called from planActions
+    # each hyperframe while scan_candidates is non-empty, so it stays HF-synced and survives
+    # cleanupScenario(Uwb). getNextSFidxRef() grabs a free SF in the HF; a guard SF before and
+    # after each round. Sink 0xFFF0 @ actor 0, edges @ actors 1.., core (transmitter) @ UWB_TAG_OFS.
     global uwb_ActorCnt
     global uwb_SFidx
-    print("Schedule uwbScanCells (candidate scan): ")
+    print("Schedule uwbScanCells (candidate scan):", len(scan_candidates), "cores")
     loposPy.getNextSFidxRef()                           # leading guard SF (separate scan from the normal plan)
-    for core in loposPy.scanCellCores():
+    for core, edges in scan_candidates.items():
         uwb_SFidx = loposPy.getNextSFidxRef()           # free SF for the scenario-13 round
         uwb_ActorCnt = 0
         loposPy.insertTodo(0xFFF0, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
         uwb_ActorCnt += 1
-        loposPy.requestScanCellPerCore(core, cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1, uwbinfoReqAnchorCellCB)
+        for edge in edges[:cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1]:
+            loposPy.insertTodo(40960 + edge, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+            uwb_ActorCnt += 1
         if (uwb_ActorCnt < cfg.LOPOS_SCENARIO_UWB_TAG_OFS):
             uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
-        loposPy.insertTodo(40960+core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        loposPy.insertTodo(40960 + core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
         loposPy.getNextSFidxRef()                       # trailing guard == gap before the next round (2 SF/core)
 
 def scheduleCellSyncTest():
@@ -579,7 +584,7 @@ def planActions():
     if hasattr(cfg, 'altIUwbInfolvoScan'):
         altIUwbInfolvoScan()
     scheduleCellSyncTest()
-    if loposPy.scanCellCount() > 0:        # admin/curateCells candidate UWB scan active
+    if scan_candidates:                    # admin/curateCells candidate UWB scan active (set via MQTT)
         uwbScanCells()
 
     if hasattr(cfg, 'testAnchor'):
@@ -637,15 +642,26 @@ def on_connect(client, userdata, message,rc):
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
     client.subscribe("loposcore/plan")
-    print("subscribed to loposcore/plan")
+    client.subscribe("loposcore/scan")
+    print("subscribed to loposcore/plan, loposcore/scan")
 
 def on_message(client, userdata, message):
     payload=str(message.payload.decode("utf-8"))
     #print(message.topic)
-    if(message.topic == "loposcore/plan"): 
-        #payloadJson = json.loads(payload)    
+    if(message.topic == "loposcore/plan"):
+        #payloadJson = json.loads(payload)
         #print(payloadJson)
         planActions()
+    if(message.topic == "loposcore/scan"):
+        # broad-UWB scan candidate set {core_id:[edge_ids]} (empty/"{}" stops the scan).
+        # planActions() schedules these each HF (HF-synced, free SFs); curateCells drives it.
+        global scan_candidates
+        try:
+            d = json.loads(payload) if payload.strip() else {}
+            scan_candidates = {int(k): [int(e) for e in v] for k, v in d.items()}
+            print("scan_candidates updated:", len(scan_candidates), "cores")
+        except Exception as ex:
+            print("bad loposcore/scan payload:", ex)
 
 loposPy.initDB()
 loposPy.updateCellsPerGroup()

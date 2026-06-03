@@ -293,14 +293,17 @@ def build_scan_rounds(coords, radius, max_rx, max_tx=1):
     return rounds
 
 
-def run_scan(scan_hfs, radius):
-    """GATEWAY ONLY. Drive a broad UWB scan by publishing per-core scan ROUNDS over MQTT
-    (topic 'loposcore/scan', a list of {tx,rx}); the scheduler holds them in memory and planActions
-    schedules as many as fit each hyperframe (HF-synced, free SFs), rotating through the list, in
-    parallel with localization. ONE round per core (core transmits, its candidate edges listen), so
-    every candidate core->edge link gets one equal opportunity per cycle. We publish the whole list
-    once, run for `scan_hfs` HFs (aim for >=16 full cycles), then publish an empty list to stop.
-    Re-fetch TSVs and run `--mode build`. Requires loposPyLib + localConfig + paho-mqtt (on ilvo-gw)."""
+def run_scan(scan_hfs, radius, batch):
+    """GATEWAY ONLY. Drive a broad UWB scan over MQTT (topic 'loposcore/scan', a list of {tx,rx});
+    the scheduler holds them in memory and planActions schedules them each hyperframe (HF-synced,
+    free SFs), in parallel with localization. ONE round per core (core transmits, its candidate
+    edges listen).
+
+    We scan in BATCHES of `batch` rounds -- small enough that ALL of a batch fits one HF, so the
+    scheduler runs the whole batch EVERY HF (no rotation), giving each (core,edge) pair ~one stat
+    per HF == the dense coverage the legacy uwbInfoAllCells produced. Each batch is held for
+    `scan_hfs` HFs (~640 s at scan_hfs=20) so every pair reaches ~scan_hfs stats, then the next
+    batch. Re-fetch TSVs and run `--mode build`. Requires loposPyLib + localConfig + paho-mqtt."""
     import time, json
     import paho.mqtt.client as mqtt
     import mysql.connector
@@ -313,6 +316,7 @@ def run_scan(scan_hfs, radius):
     coords = {int(r[0]): (float(r[1]), float(r[2])) for r in (rec or []) if r[1] is not None}
     max_rx = cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1         # up to 8 edge receivers per round
     rounds = build_scan_rounds(coords, radius, max_rx)
+    batches = [rounds[i:i+batch] for i in range(0, len(rounds), batch)]
     cli = mqtt.Client(); cli.username_pw_set("lopos", "LoPoS")
     cli.connect("127.0.0.1", 1883, 60); cli.loop_start()
     # Dedicated autocommit connection for progress polling: loposPy's connection sits in InnoDB
@@ -322,20 +326,22 @@ def run_scan(scan_hfs, radius):
                                    passwd=cfg.mysql["passwd"], db=cfg.mysql["db"], autocommit=True)
     mcur = mcon.cursor()
     HF = 32
-    ncyc = max(1, scan_hfs // max(1, -(-len(rounds) // 12)))   # rough full cycles (~12 rounds/HF)
-    print(f"{len(coords)} anchors -> {len(rounds)} per-core scan rounds (1 tx + <= {max_rx} rx each, "
-          f"R={radius}); publishing to MQTT loposcore/scan, scheduler ~12/HF, running {scan_hfs} HF "
-          f"(~{scan_hfs*HF//60} min, ~{ncyc} full cycles -> ~{ncyc} opportunities/link).")
+    print(f"{len(coords)} anchors -> {len(rounds)} per-core rounds, {len(batches)} batches of <= {batch} "
+          f"(each fits one HF -> scheduled EVERY HF, like legacy), {scan_hfs} HF/batch (~{scan_hfs*HF//60} "
+          f"min) -> ~{scan_hfs} stats/pair. Total ~{len(batches)*scan_hfs*HF//60} min. R={radius}.")
     try:
-        cli.publish("loposcore/scan", json.dumps(rounds), qos=1, retain=True)
-        mcur.execute("SELECT NOW()"); t0 = mcur.fetchone()[0]
-        last = 0
-        for hf in range(1, scan_hfs + 1):
-            time.sleep(HF)
-            mcur.execute("SELECT COUNT(*) FROM uwbstat WHERE updated >= %s", (t0,))
-            n = mcur.fetchone()[0]
-            print(f"  HF {hf:>2}/{scan_hfs}: uwbstat rows since start = {n} (+{n-last})", flush=True)
-            last = n
+        for bi, br in enumerate(batches, 1):
+            cli.publish("loposcore/scan", json.dumps(br), qos=1, retain=True)
+            cores = [r["tx"][0] for r in br]
+            print(f"=== batch {bi}/{len(batches)}: cores {cores} ===", flush=True)
+            mcur.execute("SELECT NOW()"); t0 = mcur.fetchone()[0]
+            last = 0
+            for hf in range(1, scan_hfs + 1):
+                time.sleep(HF)
+                mcur.execute("SELECT COUNT(*) FROM uwbstat WHERE updated >= %s", (t0,))
+                n = mcur.fetchone()[0]
+                print(f"  HF {hf:>2}/{scan_hfs}: rows this batch = {n} (+{n-last})", flush=True)
+                last = n
     finally:
         cli.publish("loposcore/scan", "[]", qos=1, retain=True)   # stop the scan
         time.sleep(1); cli.loop_stop(); cli.disconnect()
@@ -351,12 +357,13 @@ def main():
     ap.add_argument("--recv-good", type=float, default=RECV_GOOD)
     ap.add_argument("--data-dir", default=DATA_DIR)
     ap.add_argument("--scan", action="store_true",
-                    help="GATEWAY: drive a broad UWB scan (publish packed rounds over MQTT, wait, stop), then exit")
-    ap.add_argument("--scan-hfs", type=int, default=32, help="hyperframes to run the scan (~32s each)")
-    ap.add_argument("--radius", type=int, default=RADIUS, help="spatial bin size / neighbour link distance")
+                    help="GATEWAY: drive a broad UWB scan (batched per-core rounds over MQTT), then exit")
+    ap.add_argument("--scan-hfs", type=int, default=20, help="hyperframes per batch (~32s each; 20 ~= 640s)")
+    ap.add_argument("--batch", type=int, default=10, help="rounds per batch (must fit one HF so it runs every HF)")
+    ap.add_argument("--radius", type=int, default=RADIUS, help="candidate edge max distance from core")
     args = ap.parse_args()
     if args.scan:
-        run_scan(args.scan_hfs, args.radius)
+        run_scan(args.scan_hfs, args.radius, args.batch)
         return
     RECV_GOOD = args.recv_good; DATA_DIR = args.data_dir
     os.makedirs(OUT_DIR, exist_ok=True)

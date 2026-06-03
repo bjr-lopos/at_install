@@ -401,6 +401,27 @@ def uwbInfoAllCells():
             uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
         loposPy.insertTodo(40960+core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
 
+def uwbScanCells():
+    # Admin/curateCells-driven BROAD UWB scan over candidate links in `scancell`.
+    # Mirrors uwbInfoAllCells but reads scancell instead of cell; runs every hyperframe while
+    # scancell is populated, so it survives planActions' cleanupScenario(Uwb). getNextSFidxRef()
+    # grabs a free SF in the HF (after the normal plan); a guard SF is left before and after each
+    # scenario-13 SF. Sink 0xFFF0 @ actor 0, edges @ actors 1.., core (transmitter) @ UWB_TAG_OFS.
+    global uwb_ActorCnt
+    global uwb_SFidx
+    print("Schedule uwbScanCells (candidate scan): ")
+    loposPy.getNextSFidxRef()                           # leading guard SF (separate scan from the normal plan)
+    for core in loposPy.scanCellCores():
+        uwb_SFidx = loposPy.getNextSFidxRef()           # free SF for the scenario-13 round
+        uwb_ActorCnt = 0
+        loposPy.insertTodo(0xFFF0, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        uwb_ActorCnt += 1
+        loposPy.requestScanCellPerCore(core, cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1, uwbinfoReqAnchorCellCB)
+        if (uwb_ActorCnt < cfg.LOPOS_SCENARIO_UWB_TAG_OFS):
+            uwb_ActorCnt = cfg.LOPOS_SCENARIO_UWB_TAG_OFS
+        loposPy.insertTodo(40960+core, uwb_SFidx, cfg.LOPOS_SCENARIO_Uwb, uwb_ActorCnt, 0, 0)
+        loposPy.getNextSFidxRef()                       # trailing guard == gap before the next round (2 SF/core)
+
 def scheduleCellSyncTest():
     print("Schedule cell sync test: ")
     sql = """
@@ -558,6 +579,8 @@ def planActions():
     if hasattr(cfg, 'altIUwbInfolvoScan'):
         altIUwbInfolvoScan()
     scheduleCellSyncTest()
+    if loposPy.scanCellCount() > 0:        # admin/curateCells candidate UWB scan active
+        uwbScanCells()
 
     if hasattr(cfg, 'testAnchor'):
         if cfg.testAnchor == 1:

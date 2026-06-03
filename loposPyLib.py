@@ -427,6 +427,40 @@ def requestAnchorPerCell(core, max, _reqAnchorCellCB = None):
             _reqAnchorCellCB(core, edge[0])
 
 
+# --- candidate UWB scan (admin/curateCells driven) ---
+# `scancell` holds candidate (core,edge) links to measure. While it is non-empty the
+# scheduler runs uwbScanCells() each hyperframe (see loposScheduler.py), so the scan
+# survives planActions' cleanupScenario(Uwb). Mirrors the cell/requestAnchorPerCell pattern.
+def scanCellCores():
+    records = wrappedSql("SELECT DISTINCT core FROM scancell ORDER BY core", {})
+    return [r[0] for r in records] if records else []
+
+def scanCellCount():
+    records = wrappedSql("SELECT COUNT(*) FROM scancell", {})
+    return records[0][0] if records else 0
+
+def requestScanCellPerCore(core, max, _reqAnchorCellCB = None):
+    sql = """
+        SELECT
+            anchor.addr
+        FROM
+            scancell,
+            anchor
+        where
+            scancell.core = %(core)s
+            and
+            anchor.id = scancell.edge
+        order by 1
+        limit %(max)s
+    """
+    records = wrappedSql(sql, {'core':core, 'max':max} )
+    if (records is None):
+        return
+    for edge in records:
+        if _reqAnchorCellCB:
+            _reqAnchorCellCB(core, edge[0])
+
+
 def checkUwbTxPwr(_reqUpdateUwbTxPwrCB = None):
     print("checkUwbTxPwr adjusting the UWB tx Power if needed")
     sql = """

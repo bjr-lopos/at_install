@@ -13,6 +13,7 @@ Outputs (PNG) into OUT_DIR:
   cell_core<ID>.png   - one per cell: full map + all anchors, this cell highlighted
   group<g>.png        - one per group: full map + all anchors, all cells of that group
   overall.png         - all cells
+  overall-used.png    - only used cells (core anchor assigned to a group, group != 0)
 Plus cells_summary.csv.
 
 Every image draws the COMPLETE map table and ALL anchors, each labelled with its id;
@@ -327,11 +328,23 @@ for i, core in enumerate(sorted(cells)):
 fig.savefig(os.path.join(OUT_DIR, "overall.png"), dpi=120, bbox_inches="tight")
 plt.close(fig)
 
+# ---- overall, USED cells only (core anchor assigned to a group in the anchor table) ----
+used_cores = [c for c in sorted(cells) if anchors.get(c, {}).get("grp", 0) != 0]
+used_cells = {c: cells[c] for c in used_cores}
+fig, ax = fig_ax()
+draw_field(ax, f"CURRENT used cells: {len(used_cores)} cores (group != 0) / {len(cells)} total  |  "
+               f"coverage {coverage_pct(used_cells):.0f}% (union of used-cell hulls / coverable area)")
+for i, core in enumerate(used_cores):
+    draw_cell(ax, core, GROUP_COLORS[i % len(GROUP_COLORS)])
+fig.savefig(os.path.join(OUT_DIR, "overall-used.png"), dpi=120, bbox_inches="tight")
+plt.close(fig)
+
 with open(os.path.join(OUT_DIR, "cells_summary.csv"), "w", newline="") as f:
     w = csv.writer(f)
     w.writerow(["core", "group_bitmask", "groups", "n_edges", "2Dratio", "edges"])
     w.writerows(summary)
 
-print(f"wrote {len(cells)} cell images + {len(GROUP_BITS)+1} group images + overall to {OUT_DIR}")
+print(f"wrote {len(cells)} cell images + {len(GROUP_BITS)+1} group images + overall + "
+      f"overall-used ({len(used_cores)} used cells) to {OUT_DIR}")
 if no_coord:
     print(f"NOTE: {len(no_coord)} anchors have no self-position (not plotted): {sorted(no_coord)}")

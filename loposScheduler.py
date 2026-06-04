@@ -281,28 +281,85 @@ def scheduleTdoaCB(addr, last, overdue, interval=32):
                 tagPerCoreCell[core] = [addr]   
 
 
+def nextRoundRobinCore(grp, core):
+    """Round-robin advance within a group: the next core after `core` (wrap), or the first cell when
+    `core` is -1/unknown. Shared by the round-robin CB and the proactive CB's fallback, so the
+    round-robin logic is never duplicated and stays useful as the off-mode + safety net."""
+    cellsPerGroup = loposPy.getCellsPerGroupActive(grp)
+    if not cellsPerGroup:
+        return core
+    coreIdx = 0
+    if (core != -1) and (core in cellsPerGroup):
+        coreIdx = cellsPerGroup.index(core) + 1
+        if (coreIdx >= len(cellsPerGroup)):
+            coreIdx = 0
+    return cellsPerGroup[coreIdx]
+
+
 def scheduleTdoaGroupsCB(addr, last, overdue, interval=32):
     #print("scheduleTdoaCB: " + hex(addr) + " "+ last + " "+ str(overdue) )
     tagInfo = loposPy.isTagActive(addr)
-    if (tagInfo is None): 
+    if (tagInfo is None):
         return
     grp =  tagInfo[1]
     core = tagInfo[2]
-    if (last == 0) or (overdue > 32) or (core == -1) : 
-        cellsPerGroup = loposPy.getCellsPerGroupActive(grp)
-        coreIdx = 0
-        if (core != -1): 
-            coreIdx = cellsPerGroup.index(core)
-            coreIdx = coreIdx + 1
-            if (coreIdx >= len(cellsPerGroup)):
-                coreIdx = 0
-        core = cellsPerGroup[coreIdx]
+    if (last == 0) or (overdue > 32) or (core == -1) :
+        core = nextRoundRobinCore(grp, core)
         loposPy.updateTag(addr, core)
     global tagPerCoreCell
     try:
         tagPerCoreCell[core].append(addr)
     except KeyError:
-        tagPerCoreCell[core] = [addr]   
+        tagPerCoreCell[core] = [addr]
+
+
+# Per-tag proactive state: [switchWant, badRounds].
+#   switchWant -- consecutive re-decide rounds we have WANTED to switch cell (min-dwell hysteresis).
+#   badRounds  -- consecutive re-decide rounds without a fresh good fix (closed-loop fallback).
+tdoaProactiveState = {}
+
+
+def scheduleTdoaGroupsProactiveCB(addr, last, overdue, interval=32):
+    """Proactive, group-aware cell selection (toggle: cfg.tdoaProactiveCell). Picks the cell from the
+    tag's smoothed location instead of blind round-robin, with hysteresis (switch margin + min-dwell)
+    and a closed-loop fallback: when no fresh good fix arrives for a while (or no position yet) it
+    rotates via nextRoundRobinCore -- so round-robin remains the cold-start + safety-net path."""
+    global tagPerCoreCell, tdoaProactiveState
+    tagInfo = loposPy.isTagActive(addr)
+    if (tagInfo is None):
+        return
+    grp = tagInfo[1]
+    core = tagInfo[2]
+    if (last == 0) or (overdue > 32) or (core == -1):
+        st = tdoaProactiveState.get(addr, [0, 0])
+        goodAge = loposPy.tagGoodFixAge(addr, cfg.LOPOS_TDOA_PROACTIVE_MINHYPER)
+        if (goodAge is None) or (goodAge > cfg.LOPOS_TDOA_PROACTIVE_QUALITY_MAXAGE):
+            # cold start / poor cell: count bad rounds, rotate once we have waited long enough
+            st[1] += 1
+            if (core == -1) or (st[1] >= cfg.LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS):
+                core = nextRoundRobinCore(grp, core)
+                st = [0, 0]
+        else:
+            st[1] = 0
+            cand = loposPy.findCloseCoreInGroup(addr, grp, cfg.LOPOS_TDOA_PROACTIVE_MAXAGE,
+                                                core, cfg.LOPOS_TDOA_PROACTIVE_MARGIN)
+            if cand is None:
+                if (core == -1):
+                    core = nextRoundRobinCore(grp, core)
+            elif (cand != core):
+                # min-dwell: only switch after wanting to switch for MINDWELL consecutive rounds
+                if st[0] >= cfg.LOPOS_TDOA_PROACTIVE_MINDWELL:
+                    core = cand; st[0] = 0
+                else:
+                    st[0] += 1
+            else:
+                st[0] = 0
+        tdoaProactiveState[addr] = st
+        loposPy.updateTag(addr, core)
+    try:
+        tagPerCoreCell[core].append(addr)
+    except KeyError:
+        tagPerCoreCell[core] = [addr]
 
 def processTagPerCoreCell(interval = 32) :
     global tagPerCoreCell
@@ -378,15 +435,26 @@ def scheduleTDoAAlt(interval=32):
 
 def scheduleTDoAgroups(fixedSF = 0):
     print("Schedule TDoA reports based on group info: ")
-    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)    
-    loposPy.updateActiveTags(900) 
+    loposPy.cleanupScenario(cfg.LOPOS_SCENARIO_TDoA)
+    loposPy.updateActiveTags(900)
+
+    # Toggle proactive vs round-robin via the same hasattr(cfg, ...) convention as planActions
+    # (scheduleTDoAwGroups / tagPerCoreCellFixed): absent => round-robin, present => proactive.
+    if hasattr(cfg, 'tdoaProactiveCell'):
+        loposPy.getPositionCoreAnchors()
+        loposPy.getPositionTagsMedian(cfg.LOPOS_TDOA_PROACTIVE_SAMPLES,
+                                      cfg.LOPOS_TDOA_PROACTIVE_WINDOW)
+        loposPy.localizeDiscoverTags(100, -87.0)   # discovery fallback for tags without a TDoA fix
+        cb = scheduleTdoaGroupsProactiveCB
+    else:
+        cb = scheduleTdoaGroupsCB
 
     global tagPerCoreCell
     tagPerCoreCell.clear()
     if fixedSF == 0 :
-        loposPy.checkForSchedules("position", cfg.LOPOS_SCENARIO_TDoA, scheduleTdoaGroupsCB)
-    else: 
-        loposPy.checkForSchedulesFixed("position", cfg.LOPOS_SCENARIO_TDoA, scheduleTdoaGroupsCB)        
+        loposPy.checkForSchedules("position", cfg.LOPOS_SCENARIO_TDoA, cb)
+    else:
+        loposPy.checkForSchedulesFixed("position", cfg.LOPOS_SCENARIO_TDoA, cb)
     processTagPerCoreCell()
 
 

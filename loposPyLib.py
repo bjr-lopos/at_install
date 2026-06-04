@@ -372,12 +372,163 @@ def findCloseCore(dev, maxage):
         cx=float(positionCoreAnchor[core][0])
         cy=float(positionCoreAnchor[core][1])
         cz=float(positionCoreAnchor[core][2])
-        cDist = ((dx-cx)**2+(dy-cy)**2+(dz-cy)**2)**(.5)
+        cDist = ((dx-cx)**2+(dy-cy)**2+(dz-cz)**2)**(.5)
         if cDist < lDist: 
             coreIdx = core
             lDist = cDist
     #print("Dist is: ", str(lDist))
     return coreIdx
+
+
+# -----------------------------------------------------------
+# Proactive, group-aware cell selection (toggle: cfg.tdoaProactiveCell).
+# Picks the cell whose coverage polygon contains the tag, else the nearest core, restricted to the
+# tag's group. Uses a SMOOTHED tag position (median over recent fixes) so a single faulty fix does
+# not move the choice. Hysteresis (switch margin) is folded in here; min-dwell + the round-robin
+# quality fallback live in the scheduler callback. Reception/geometry data, positions and group
+# membership all already exist; no C-core change.
+# -----------------------------------------------------------
+cellFootprint = {}      # core -> [(x,y), ...] convex hull of the cell's anchors (cores + edges)
+
+
+def _convexHull(pts):
+    pts = sorted(set(pts))
+    if len(pts) <= 2:
+        return pts
+    def cross(o, a, b):
+        return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0])
+    lower = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def _pointInPoly(x, y, poly):
+    inside = False; n = len(poly); j = n - 1
+    for i in range(n):
+        xi, yi = poly[i]; xj, yj = poly[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def updateCellFootprints():
+    """Load each cell's coverage polygon (convex hull of its anchors) for in-cell selection.
+    Cached; needs positionAnchor (all anchors) + the cell table. Same hull model as curateCells."""
+    global cellFootprint
+    if len(cellFootprint) > 0:
+        return
+    getPositionAnchors()
+    records = wrappedSql("SELECT core, edge FROM cell ORDER BY core", {})
+    if records is None:
+        return
+    edges = {}
+    for core, edge in records:
+        edges.setdefault(int(core), []).append(int(edge))
+    for core, es in edges.items():
+        pts = []
+        for a in [core] + es:
+            p = positionAnchor.get(a)
+            if p and p[0] is not None:
+                pts.append((float(p[0]), float(p[1])))
+        if len(pts) >= 3:
+            hull = _convexHull(pts)
+            if len(hull) >= 3:
+                cellFootprint[core] = hull
+
+
+def _median(vals):
+    s = sorted(vals); n = len(s)
+    if n == 0:
+        return None
+    return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
+
+
+def getPositionTagsMedian(samples, window):
+    """Like getPositionTags but stores the per-tag MEDIAN of the last <=`samples` fixes within
+    `window` seconds, instead of the single latest row -> robust to one faulty position.
+    age = freshest sample's age."""
+    global positionTag
+    positionTag.clear()
+    sql = """
+        select p.addr, p.x, p.y, p.z, TIMESTAMPDIFF(SECOND, p.updated, now()) as age
+        from position as p
+        where p.addr & 0xF000 = 0x1000
+          and TIMESTAMPDIFF(SECOND, p.updated, now()) < %(window)s
+        order by p.addr, p.updated desc
+    """
+    records = wrappedSql(sql, {'window': window})
+    if records is None:
+        return
+    bucket = {}
+    for addr, x, y, z, age in records:
+        bucket.setdefault(addr, []).append((x, y, z, age))
+    for addr, rows in bucket.items():
+        rows = rows[:samples]
+        mx = _median([float(r[0]) for r in rows])
+        my = _median([float(r[1]) for r in rows])
+        mz = _median([float(r[2]) for r in rows])
+        age = min(r[3] for r in rows)
+        positionTag[addr] = [mx, my, mz, age]
+
+
+def tagGoodFixAge(addr, minHyper):
+    """Seconds since the tag's last GOOD position fix (numHyperbola >= minHyper); None if never.
+    The closed-loop quality signal for the proactive scheduler -- no C-core change needed."""
+    rec = wrappedSql(
+        "select TIMESTAMPDIFF(SECOND, max(updated), now()) from position "
+        "where addr=%(addr)s and IFNULL(numHyperbola,0) >= %(minHyper)s",
+        {'addr': addr, 'minHyper': minHyper})
+    if rec and rec[0] and rec[0][0] is not None:
+        return rec[0][0]
+    return None
+
+
+def findCloseCoreInGroup(dev, grp, maxage, current=-1, margin=0.0):
+    """Proactive group-aware cell pick. Among the cores serving group `grp`, prefer the cell whose
+    coverage polygon contains the tag, else the nearest core. With hysteresis: if `current` is one
+    of the group's cores, keep it unless the new best is closer by more than `margin`.
+    Returns a core id, or None when no usable (fresh) tag position is known -> caller falls back to
+    round-robin (cold start / quality fallback)."""
+    cores = cellsPerGroup.get(grp)
+    if not cores:
+        return None
+    pos = positionTag.get(dev)
+    if (pos is None) or (pos[3] >= maxage):
+        pos = discoveredTag.get(dev)
+        if pos is None:
+            return None
+    dx = float(pos[0]); dy = float(pos[1])
+    updateCellFootprints()
+    contains = [c for c in cores
+                if c in cellFootprint and _pointInPoly(dx, dy, cellFootprint[c])]
+    pool = contains if contains else [c for c in cores if c in positionCoreAnchor]
+    best = None; lDist2 = None
+    for core in pool:
+        cp = positionCoreAnchor.get(core)
+        if not cp:
+            continue
+        d2 = (dx - float(cp[0]))**2 + (dy - float(cp[1]))**2
+        if lDist2 is None or d2 < lDist2:
+            lDist2 = d2; best = core
+    if best is None:
+        return None
+    # hysteresis: keep the current cell unless the new best beats it by more than `margin`
+    if current != -1 and current in cores and current in positionCoreAnchor and best != current:
+        cp = positionCoreAnchor[current]
+        curD = ((dx - float(cp[0]))**2 + (dy - float(cp[1]))**2) ** 0.5
+        bestD = lDist2 ** 0.5
+        if (curD - bestD) <= margin:
+            return current
+    return best
 
 
 def insertTodo(addr, SFcnt, scenario, actor, repeat, last):

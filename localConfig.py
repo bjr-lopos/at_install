@@ -19,6 +19,19 @@ mysql = {
 #altIUwbInfolvoScan=1
 scheduleTDoAwGroups=1
 
+# Proactive, group-aware TDoA cell selection (presence-toggle, like scheduleTDoAwGroups above).
+# Uncomment tdoaProactiveCell to pick each tag's cell from its smoothed location instead of blind
+# round-robin; comment it out to revert to round-robin. The tunables below always apply when on.
+#tdoaProactiveCell=1
+LOPOS_TDOA_PROACTIVE_SAMPLES=5          # median over the last N position fixes (outlier rejection)
+LOPOS_TDOA_PROACTIVE_WINDOW=30          # ... within this many seconds
+LOPOS_TDOA_PROACTIVE_MAXAGE=60          # ignore a tag position older than this (s) -> fallback
+LOPOS_TDOA_PROACTIVE_MARGIN=300         # switch cell only if a candidate is closer by > this (coord units)
+LOPOS_TDOA_PROACTIVE_MINDWELL=2         # ... and only after wanting to switch this many rounds (min-dwell)
+LOPOS_TDOA_PROACTIVE_MINHYPER=3         # a "good" fix needs >= this many hyperbolas
+LOPOS_TDOA_PROACTIVE_QUALITY_MAXAGE=45  # no good fix within this (s) counts as a bad round
+LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS=2  # after this many bad rounds, fall back to round-robin advance
+
 LOPOS_SF_BLOCK_SIZE=8
 LOPOS_LAST_FIXED_SF = 89
 LOPOS_FIRST_REPEAT_SF = 89

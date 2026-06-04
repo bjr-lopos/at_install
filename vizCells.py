@@ -26,8 +26,12 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle, Patch, Polygon
 
-DATA_DIR = "/tmp/lopos_viz"
-OUT_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "viz")
+# DATA_DIR (TSV inputs), OUT_DIR (PNG outputs) and LABEL (title prefix) are overridable via env,
+# so the same renderer can draw several states (e.g. a pre-change baseline vs today) side by side.
+DATA_DIR = os.environ.get("VIZ_DATA_DIR", "/tmp/lopos_viz")
+OUT_DIR  = os.environ.get("VIZ_OUT_DIR",
+                          os.path.join(os.path.dirname(os.path.abspath(__file__)), "viz"))
+LABEL    = os.environ.get("VIZ_LABEL", "CURRENT")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # group bit -> label
@@ -321,7 +325,7 @@ for ci, core in enumerate(sorted(cells)):
     fig, ax = fig_ax()
     bm = anchors.get(core, {}).get("grp", 0)
     r2 = two_d_ratio(core, cells[core])
-    draw_field(ax, f"CURRENT cell core={core}  groups={grp_label(bm)} (bitmask {bm})  "
+    draw_field(ax, f"{LABEL} cell core={core}  groups={grp_label(bm)} (bitmask {bm})  "
                    f"edges={cells[core]}")
     draw_cell(ax, core, "#d62728", focal=True)
     fig.savefig(os.path.join(OUT_DIR, f"cell_core{core:02d}.png"), dpi=110, bbox_inches="tight")
@@ -336,7 +340,7 @@ for bit, gl in GROUP_BITS + [(0, "ungrouped")]:
     if not members:
         continue
     fig, ax = fig_ax()
-    draw_field(ax, f"CURRENT {gl}: {len(members)} cells, cores={sorted(members)}")
+    draw_field(ax, f"{LABEL} {gl}: {len(members)} cells, cores={sorted(members)}")
     for i, core in enumerate(sorted(members)):
         draw_cell(ax, core, GROUP_COLORS[i % len(GROUP_COLORS)])
     fig.savefig(os.path.join(OUT_DIR, f"group_{gl}.png"), dpi=110, bbox_inches="tight")
@@ -344,7 +348,7 @@ for bit, gl in GROUP_BITS + [(0, "ungrouped")]:
 
 # ---- overall ----
 fig, ax = fig_ax()
-draw_field(ax, f"CURRENT all cells: {len(cells)} cores / {len(anchors)} anchors  |  "
+draw_field(ax, f"{LABEL} all cells: {len(cells)} cores / {len(anchors)} anchors  |  "
                f"coverage {coverage_pct(cells):.0f}% (union of cell hulls / coverable area)")
 for i, core in enumerate(sorted(cells)):
     draw_cell(ax, core, GROUP_COLORS[i % len(GROUP_COLORS)])
@@ -355,7 +359,7 @@ plt.close(fig)
 used_cores = [c for c in sorted(cells) if anchors.get(c, {}).get("grp", 0) != 0]
 used_cells = {c: cells[c] for c in used_cores}
 fig, ax = fig_ax()
-draw_field(ax, f"CURRENT used cells: {len(used_cores)} cores (group != 0) / {len(cells)} total  |  "
+draw_field(ax, f"{LABEL} used cells: {len(used_cores)} cores (group != 0) / {len(cells)} total  |  "
                f"coverage {coverage_pct(used_cells):.0f}% (union of used-cell hulls / coverable area)")
 for i, core in enumerate(used_cores):
     draw_cell(ax, core, GROUP_COLORS[i % len(GROUP_COLORS)])

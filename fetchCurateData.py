@@ -81,6 +81,16 @@ def main():
     dump(cur, os.path.join(args.out, "map.tsv"), ["mapcol", "x1", "y1", "x2", "y2"],
          "SELECT mapcol, x1, y1, x2, y2 FROM map")
 
+    # meta.tsv: one row describing the uwbstat dataset actually fetched (anchor->anchor rows that
+    # passed the --since filter) -- start/end time, row count, distinct tx/rx anchors, ordered pairs.
+    # vizCells.py renders this in the figure caption so the image states which dataset it shows.
+    dump(cur, os.path.join(args.out, "meta.tsv"),
+         ["since", "min_updated", "max_updated", "rows", "tx_anchors", "rx_anchors", "pairs"],
+         "SELECT %s, MIN(updated), MAX(updated), COUNT(*), "
+         "COUNT(DISTINCT devTx), COUNT(DISTINCT devRx), COUNT(DISTINCT devTx, devRx) "
+         "FROM uwbstat WHERE (devTx & %s)=%s AND (devRx & %s)=%s AND updated >= %s",
+         (str(since), A_MASK, A_BASE, A_MASK, A_BASE, since))
+
     cur.close(); con.close()
     print("done.")
 

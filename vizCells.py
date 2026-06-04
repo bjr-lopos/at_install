@@ -82,12 +82,33 @@ for r in load("map.tsv"):
     except ValueError:
         pass
 
-# uwbstat freshness (from meta.tsv: min, max, total, last10min)
+# ---- dataset descriptor (the uwbstat slice this image is rendered from) ----
+# meta.tsv (one row from fetchCurateData): since  min_updated  max_updated  rows  tx_anchors  rx_anchors  pairs
 mr = load("meta.tsv", optional=True)
-uwb_min = uwb_max = "?"; uwb_total = uwb_recent = 0
+ds = {}
 if mr:
-    uwb_min, uwb_max, uwb_total, uwb_recent = mr[0][0], mr[0][1], int(mr[0][2]), int(mr[0][3] or 0)
-STALE = "  [STALE: no live UWB scan running]" if uwb_recent == 0 else ""
+    f = mr[0]
+    ds = dict(since=f[0], tmin=f[1], tmax=f[2], rows=int(f[3] or 0),
+              ntx=int(f[4] or 0), nrx=int(f[5] or 0), npairs=int(f[6] or 0))
+# opportunities/link = expected scan rounds per ordered pair (the denominator of the ratio)
+_opp = sorted(expected.values())
+def _median(v):
+    if not v:
+        return 0
+    n = len(v); return v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) / 2
+opp_med, opp_max = (_median(_opp), max(_opp)) if _opp else (0, 0)
+
+if ds and ds["rows"]:
+    DATASET = (f"DATASET: uwbstat {ds['tmin']} .. {ds['tmax']}  |  {ds['rows']} stat rows, "
+               f"{ds['npairs']} ordered anchor pairs, {ds['ntx']} tx / {ds['nrx']} rx anchors  |  "
+               f"opportunities/link (expected rounds): median {opp_med:g}, max {opp_max:g}"
+               + (f"  (uwbstat since-filter {ds['since']})" if ds.get('since') else "") + ".")
+elif recv:
+    DATASET = (f"DATASET: {len(recv)} ordered anchor pairs, opportunities/link median {opp_med:g} / "
+               f"max {opp_max:g}  (no meta.tsv -- time window unknown; re-run fetchCurateData).")
+else:
+    DATASET = "DATASET: no UWB reception loaded (linkcounts empty) -- link colours are NOT meaningful."
+
 _used_anchors = set(cells.keys()) | {e for es in cells.values() for e in es}
 nc_used = sorted(a for a in no_coord if a in _used_anchors)
 nc_unused = sorted(a for a in no_coord if a not in _used_anchors)
@@ -96,8 +117,8 @@ _uw = [(anchors[a]["x"], anchors[a]["y"]) for a in _used_anchors
        if anchors.get(a) and anchors[a]["x"] is not None]
 COVER_BBOX = (min(x for x, _ in _uw), max(x for x, _ in _uw),
               min(y for _, y in _uw), max(y for _, y in _uw)) if _uw else None
-CAPTION = (f"Link quality = UWB stats RECEIVED / EXPECTED rounds (count, NOT rssi) from uwbstat over "
-           f"{uwb_min} .. {uwb_max} ({uwb_total} pairs, {uwb_recent} in last 10 min){STALE}.   "
+CAPTION = (DATASET + "\n"
+           f"Link quality = UWB stats RECEIVED / EXPECTED rounds (count, NOT rssi).   "
            f"Line colour = core->edge reception (the only direction that matters); label = recv/expected + symmetry (= both dirs good, -> fwd-only, <- rev-only).\n"
            f"Anchors without a self-position (not plotted): USED in cells (relevant): {nc_used or 'none'}  |  unused: {nc_unused or 'none'}.")
 

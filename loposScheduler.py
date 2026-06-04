@@ -323,14 +323,27 @@ def scheduleTdoaGroupsProactiveCB(addr, last, overdue, interval=32):
     """Proactive, group-aware cell selection (toggle: cfg.tdoaProactiveCell). Picks the cell from the
     tag's smoothed location instead of blind round-robin, with hysteresis (switch margin + min-dwell)
     and a closed-loop fallback: when no fresh good fix arrives for a while (or no position yet) it
-    rotates via nextRoundRobinCore -- so round-robin remains the cold-start + safety-net path."""
+    rotates via nextRoundRobinCore -- so round-robin remains the cold-start + safety-net path.
+    Scoped per-group: only tags whose group is in cfg.LOPOS_TDOA_PROACTIVE_GROUPS use the proactive
+    path (e.g. [3,4] for a staged rollout); all other groups stay on plain round-robin. Set the list
+    to all groups (or remove it) to go system-wide."""
     global tagPerCoreCell, tdoaProactiveState
     tagInfo = loposPy.isTagActive(addr)
     if (tagInfo is None):
         return
     grp = tagInfo[1]
     core = tagInfo[2]
+    proactiveGroups = getattr(cfg, 'LOPOS_TDOA_PROACTIVE_GROUPS', None)   # None => all groups
     if (last == 0) or (overdue > 32) or (core == -1):
+        if (proactiveGroups is not None) and (grp not in proactiveGroups):
+            # group not in the proactive rollout -> plain round-robin (current production behavior)
+            core = nextRoundRobinCore(grp, core)
+            loposPy.updateTag(addr, core)
+            try:
+                tagPerCoreCell[core].append(addr)
+            except KeyError:
+                tagPerCoreCell[core] = [addr]
+            return
         st = tdoaProactiveState.get(addr, [0, 0])
         goodAge = loposPy.tagGoodFixAge(addr, cfg.LOPOS_TDOA_PROACTIVE_MINHYPER)
         if (goodAge is None) or (goodAge > cfg.LOPOS_TDOA_PROACTIVE_QUALITY_MAXAGE):

@@ -36,8 +36,10 @@ GROUP_BITS = [(1, "grp1"), (2, "grp2"), (4, "grp3"), (8, "grp4")]
 BORDERS = [(-2335, "grp1|grp2"), (2429, "grp3|grp4"), (-280, "cluster"), (300, "cluster")]
 RECV_GOOD = 0.80   # a link must deliver >= this fraction of its expected stats to count as "good"
 
-def load(name):
+def load(name, optional=False):
     p = os.path.join(DATA_DIR, name)
+    if optional and not os.path.exists(p):
+        return []
     rows = []
     with open(p) as f:
         for i, line in enumerate(f):
@@ -81,7 +83,7 @@ for r in load("map.tsv"):
         pass
 
 # uwbstat freshness (from meta.tsv: min, max, total, last10min)
-mr = load("meta.tsv")
+mr = load("meta.tsv", optional=True)
 uwb_min = uwb_max = "?"; uwb_total = uwb_recent = 0
 if mr:
     uwb_min, uwb_max, uwb_total, uwb_recent = mr[0][0], mr[0][1], int(mr[0][2]), int(mr[0][3] or 0)

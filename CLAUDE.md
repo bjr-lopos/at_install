@@ -28,10 +28,12 @@ grp4 marginal). No errors, services healthy. Only ~40% of grp3/4 tags were on th
 (rest fell back to round-robin: no fresh position within the 30 s window).
 
 **How to continue next session (read this first):**
-- Evaluation data is being logged on ilvo by a **cron** (lopos crontab) running `proactiveEval.py 30`
-  every 30 min → appends `/home/lopos/proactive_eval.csv` (stdout/errs in `/home/lopos/proactive_eval.log`).
-  Read the CSV to see the grp3/4-vs-grp1/2(control) trend over time. Run a one-off any time:
-  `ssh ilvo 'cd /home/lopos/install && sudo -u lopos python3 proactiveEval.py 30'`.
+- Evaluation is **manual** (no standing cron — auto-mode blocked installing a recurring job on the
+  production gateway). Take a sample any time:
+  `ssh ilvo 'cd /home/lopos/install && sudo -u lopos python3 proactiveEval.py 30'` — it appends
+  `/home/lopos/proactive_eval.csv` (seeded 2026-06-04 17:17). Read that CSV for the
+  grp3/4-vs-grp1/2(control) trend. To auto-collect while idle, the user can authorize this cron
+  (lopos crontab): `*/30 * * * * /usr/bin/python3 /home/lopos/install/proactiveEval.py 30 >> /home/lopos/proactive_eval.log 2>&1`.
 - **Decide system-wide** when grp3/4 stay consistently above the grp1/2 control: set
   `LOPOS_TDOA_PROACTIVE_GROUPS=[1,2,3,4]` (or remove the line), commit/push, `git pull` on ilvo,
   `sudo cp` the changed file(s), restart `loposplan`+`loposmath`.

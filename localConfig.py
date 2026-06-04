@@ -22,7 +22,7 @@ scheduleTDoAwGroups=1
 # Proactive, group-aware TDoA cell selection (presence-toggle, like scheduleTDoAwGroups above).
 # Uncomment tdoaProactiveCell to pick each tag's cell from its smoothed location instead of blind
 # round-robin; comment it out to revert to round-robin. The tunables below always apply when on.
-#tdoaProactiveCell=1
+tdoaProactiveCell=1
 LOPOS_TDOA_PROACTIVE_GROUPS=[3,4]       # only these groups use proactive; others stay round-robin.
                                        # Staged rollout: evaluate on grp3/4, then set [1,2,3,4] (or
                                        # remove the line) to go system-wide.

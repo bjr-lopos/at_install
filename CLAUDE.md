@@ -10,6 +10,37 @@
 ## Cell-curation toolchain (new — see README.md)
 - `curateCells.py` (build/refine + `--scan`), `vizCells.py`, `fetchCurateData.py` re-derive the TDoA `cell` table from **measured** UWB reception. README.md has the full description. Metric = reception **count** (`received/expected` per ordered pair ≥ `RECV_GOOD`), **not** RSSI. The broad scan runs anchors-only (never tags) over MQTT topic `loposcore/scan`, scheduled by `uwbScanCells` from the **repeating** SF pool (`getNextSFrepIdxRef`, block offsets 2–7, interleaved `inter_sf=2`, one-shot — runs after TDoA/accel/stat so it uses their leftover slots without collision).
 
+## Resume / proactive cell selection (state as of 2026-06-04 evening) — ACTIVE EXPERIMENT
+**What is live now:** Proactive, group-aware TDoA cell selection is DEPLOYED and ENABLED for **grp3/4
+only** on ilvo (round-robin unchanged for grp1/2). Toggle = `cfg.tdoaProactiveCell` (presence) +
+`cfg.LOPOS_TDOA_PROACTIVE_GROUPS=[3,4]` in `localConfig.py`. Code: `loposScheduler.py`
+(`scheduleTdoaGroupsProactiveCB`, `nextRoundRobinCore`) + `loposPyLib.py` (`findCloseCoreInGroup`,
+`getPositionTagsMedian`, `tagGoodFixAge`, cell footprints; fixed `dz-cz` typo). Round-robin is reused
+as the cold-start + quality fallback (a tag uses round-robin until it has a fresh good fix). Design
+plan: `~/.claude/plans/two-options-now-we-tingly-emerson.md` (local to that PC; summary here).
+Deployed: `loposScheduler.py`+`loposPyLib.py` `sudo cp`'d to `/usr/local/bin`; `localConfig.py` is a
+symlink so the repo copy is live. Restart `loposplan`+`loposmath` after any change (not loposcore).
+All committed+pushed to `ab-install/master`.
+
+**Early result (1 window, ~20 min settle, 2026-06-04 ~17:11):** per-tag fix-rate Δ vs baseline —
+grp3 **+20%**, grp4 +8%; control grp1 +9%, grp2 +0.7% (so ~5–9% global drift → net grp3 ≈ +12–15%,
+grp4 marginal). No errors, services healthy. Only ~40% of grp3/4 tags were on the proactive path
+(rest fell back to round-robin: no fresh position within the 30 s window).
+
+**How to continue next session (read this first):**
+- Evaluation data is being logged on ilvo by a **cron** (lopos crontab) running `proactiveEval.py 30`
+  every 30 min → appends `/home/lopos/proactive_eval.csv` (stdout/errs in `/home/lopos/proactive_eval.log`).
+  Read the CSV to see the grp3/4-vs-grp1/2(control) trend over time. Run a one-off any time:
+  `ssh ilvo 'cd /home/lopos/install && sudo -u lopos python3 proactiveEval.py 30'`.
+- **Decide system-wide** when grp3/4 stay consistently above the grp1/2 control: set
+  `LOPOS_TDOA_PROACTIVE_GROUPS=[1,2,3,4]` (or remove the line), commit/push, `git pull` on ilvo,
+  `sudo cp` the changed file(s), restart `loposplan`+`loposmath`.
+- **Revert** = comment `tdoaProactiveCell=1`, pull on ilvo, restart `loposplan`+`loposmath`.
+- **Tuning lever**: widen `LOPOS_TDOA_PROACTIVE_WINDOW` (30→60 s) to pull more grp3/4 tags onto the
+  proactive path (likely larger effect); other tunables: SAMPLES/MAXAGE/MARGIN/MINDWELL/MINHYPER/
+  QUALITY_MAXAGE/FALLBACK_ROUNDS in `localConfig.py`.
+- **Remove the cron** when done evaluating: `sudo -u lopos crontab -e` and delete the proactiveEval line.
+
 ## Resume / TODO (state as of 2026-06-03 evening)
 Done today: merged wish+ilvo onto master & deployed; fixed grp3/4 collapse (reverted `rescheduleSF`/repeat to one-shot, `tdoa_rescheduleSF=0`, commented re-enable line); built the curation toolchain; broad rep-pool scan working (dense: median ~12, max 14 opportunities/link, ~10 min, TDoA unaffected, no tag drain); `--mode build` on fresh dense data → **13 cells, 79% coverage**, low-BR (13/14/99) / no-position (2/6/33/37/41/52) / collinear cores dropped; example links 8→3 (13/13) and 8→10 (12/12) now candidates. Proposal written to `curate_out/apply_cells_*.sql` (**dry-run, NOT applied**). All committed+pushed to `ab-install/master`; README.md added.
 

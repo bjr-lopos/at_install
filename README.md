@@ -172,10 +172,112 @@ The scan is driven entirely over MQTT — no extra DB tables.
 `uwbScanCells` allocates from the **repeating** pool (it runs after TDoA/accel/
 stat, so the shared cursor is past their slots and it takes the free remainder),
 with `inter_sf=2` to leave a gap between rounds so the sink is not flooded, and
-`rescheduleSF=0` (one-shot — **not** the device repeat flag). That fits all
-rounds in one HF for dense, even measurement without touching TDoA's slots. A
-budget guard on `SFrepIdxRef` plus a rotating cursor spread the remainder if the
-pool ever fills.
+`rescheduleSF=0` (one-shot — **not** the device repeat flag). Its per-HF budget
+is `repPoolRemaining()` (see *moving TDoA window* below): when the pool is
+nearly consumed this cycle the rotating cursor spreads the remaining rounds
+over the next HFs, so a scan campaign runs slower while the window moves but
+still completes full coverage.
+
+---
+
+## Scheduling approaches (state as of 2026-06-05)
+
+### Proactive, group-aware TDoA cell selection — system-wide
+
+Toggle = presence of `cfg.tdoaProactiveCell`; scope = `LOPOS_TDOA_PROACTIVE_GROUPS`
+(now `[1,2,3,4]`, i.e. all groups; remove the line for the same effect). Comment
+`tdoaProactiveCell` out to revert to plain round-robin. Code:
+`scheduleTdoaGroupsProactiveCB` (`loposScheduler.py`) + `findCloseCoreInGroup`,
+`getPositionTagsMedian`, `tagGoodFixAge`, cell footprints/COMs (`loposPyLib.py`).
+
+Per tag, each re-decide round (`overdue` is **percent past the plan interval**,
+not seconds; gate is `overdue > 32`):
+
+1. **Fresh good fix** (≥`MINHYPER` hyperbolas within `QUALITY_MAXAGE` s): pick the
+   cell whose **footprint hull contains** the median position (median of `SAMPLES`
+   fixes within `WINDOW` s), else the cell with the nearest **center of mass**
+   (mean of ALL the cell's anchors, core + edges — `cellCOM`, not the core anchor
+   alone). Hysteresis: switch only if the candidate is closer by > `MARGIN` and
+   only after wanting to switch `MINDWELL` consecutive rounds. Cold start
+   (`core == -1`) bypasses the dwell (else the tag is scheduled to nonexistent
+   core −1 / dev `0x9fff` after a service restart).
+2. **No good fix, but audible**: a location hint picks the cell directly each
+   round — a stale fix up to `LOST_MAXAGE` (600 s) or the **capture COM**
+   (`discoveredTag`, below) — no incumbent, no margin.
+3. **Fully silent**: blind round-robin, first move after `FALLBACK_ROUNDS` (2) bad
+   rounds, then each trial cell is **held `TRIAL_ROUNDS` (5) re-decide rounds**: a
+   low-BR tag must *hear the plan while the trial cell is also the covering one* —
+   P(heard in d rounds) = 1−(1−BR)^d, so holding trials beats fast rotation.
+   `badRounds` counts continuously; only a good fix resets it.
+
+Round-robin (`nextRoundRobinCore`) is unchanged and remains the cold-start +
+safety-net path; per-group scoping means a staged rollout is one config line.
+
+### Capture-COM discovery (`localizeDiscoverTags`)
+
+`discoveredTag[addr]` = plain **center of mass of the distinct anchors that
+captured the tag's TDoA blinks** in the last 100 s, from the `tdoa` capture
+table (`dbAddTdoaInfo` stores *every* capture, including rounds
+`storeTdoaResult` rejects on sync mismatch — a stale round still contributes
+discovery data). Every capturing anchor counts equally (no RSSI weighting).
+`uwbstat` is **not** used: it never carries tag transmissions here
+(anchor-to-anchor only — the old uwbstat-based centroid was permanently empty).
+Encoding: `tdoa.tag` = dev−0x1000 (negatives = stripped-address reports,
+skipped), `tdoa.edge` = anchor id, anchor position addr = id+0xA000.
+
+### Moving TDoA window (repeating-pool slide)
+
+The repeating-pool cursor is **not reset to 90 each HF** (`initSFrepIdxRef`):
+each cycle continues after the last slot the previous HF used, so the
+TDoA/accel/stat/scan block slides through SF 90..240 (~32 SFs per HF) and
+**rotates** back to `LOPOS_FIRST_REPEAT_SF+1` past `LOPOS_LAST_USABLE_SF`
+(`claimRepeatingAndfixedSF`). Block offsets 0–1 stay reserved. After a rotate
+every slot is checked free against pending todos (`isSFslotFree`); consecutive
+HFs are kept **slot-disjoint** (`repPoolRemaining()` budgets to the *previous*
+cycle's start), and lapping the own cycle start still exits as overstressed.
+
+Why: a device that misses the new plan replays last HF's provisioning at the
+same absolute SF. With a static window that landed inside live frames →
+`storeTdoaResult failed … used sync X, now sync seems Y` (the gateway bundles
+captures per (asn, tag) and requires **all reporting anchors to agree on the
+sync ref, first-report-wins** — one stale or foreign-cell report arriving first
+poisons the whole bundle). With the moving window stale replays land in
+**silent SFs**: measured stale-sync rate went from ~0.13–0.15 per fix (bursts
+to 20/min) to ~0 at deploy. Hard requirement: one-shot scheduling
+(`tdoa_rescheduleSF=0`) — the device `.repeat` flag is incompatible with a
+moving window.
+
+### Evaluation + known issues
+
+- `proactiveEval.py N` (gateway, lopos user) appends per-group fix rates over an
+  N-minute window to `/home/lopos/proactive_eval.csv`. Compare each group to its
+  own trend over time — grp1/2 are **different physical zones**, not a control
+  for grp3/4, and the gain is activity/diurnal-dependent (evening ≠ morning).
+- `Missing frames between A-B` (loposcore, serial schedule-fetch sequence):
+  ref A+1..B−1 never fetched its schedule that round (anchor id or 4-tag chunk)
+  → those devices run the HF unprovisioned. Chronic ~40–70/h, device/radio-side,
+  unaffected by the changes above; the dominant remaining provisioning-loss path.
+- Cross-group moves (tag carried to another group's area) are still unhandled:
+  the Discover wide-net scenario needs `cell` rows for core 0 (admin SQL), which
+  are not configured.
+- A tag's `dev` in some loposcore log lines appears with the `0x1000` bit
+  stripped (`dev:0x0049` = tag `0x1049`) — log formatting in the C binary, the
+  addresses on air and in `todo` are correct.
+
+### Proactive tunables (`localConfig.py`)
+
+| name | default | meaning |
+|---|---|---|
+| `LOPOS_TDOA_PROACTIVE_SAMPLES` | 5 | median over the last N fixes |
+| `LOPOS_TDOA_PROACTIVE_WINDOW` | 60 | … within this many seconds |
+| `LOPOS_TDOA_PROACTIVE_MAXAGE` | 60 | ignore positions older than this (s) |
+| `LOPOS_TDOA_PROACTIVE_MARGIN` | 300 | switch only if closer by > this |
+| `LOPOS_TDOA_PROACTIVE_MINDWELL` | 2 | … and only after this many rounds |
+| `LOPOS_TDOA_PROACTIVE_MINHYPER` | 3 | a good fix needs ≥ this many hyperbolas |
+| `LOPOS_TDOA_PROACTIVE_QUALITY_MAXAGE` | 45 | no good fix within this (s) = bad round |
+| `LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS` | 2 | bad rounds before the first blind move |
+| `LOPOS_TDOA_PROACTIVE_LOST_MAXAGE` | 600 | stale fix age accepted as a location hint |
+| `LOPOS_TDOA_PROACTIVE_TRIAL_ROUNDS` | 5 | rounds each blind trial cell is held |
 
 ---
 

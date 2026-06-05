@@ -34,6 +34,11 @@ LOPOS_TDOA_PROACTIVE_MINDWELL=2         # ... and only after wanting to switch t
 LOPOS_TDOA_PROACTIVE_MINHYPER=3         # a "good" fix needs >= this many hyperbolas
 LOPOS_TDOA_PROACTIVE_QUALITY_MAXAGE=45  # no good fix within this (s) counts as a bad round
 LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS=2  # after this many bad rounds, fall back to round-robin advance
+LOPOS_TDOA_PROACTIVE_LOST_MAXAGE=600    # lost tag: accept a stale fix this old (s) -- else the RSSI
+                                       # discovery centroid -- to pick the cell instead of blind RR
+LOPOS_TDOA_PROACTIVE_TRIAL_ROUNDS=5     # blind RR only: hold each trial cell this many re-decide
+                                       # rounds; a low-BR tag needs several HFs to hear the plan
+                                       # while the trial cell is also the covering one
 
 LOPOS_SF_BLOCK_SIZE=8
 LOPOS_LAST_FIXED_SF = 89

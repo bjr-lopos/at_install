@@ -316,6 +316,8 @@ def scheduleTdoaGroupsCB(addr, last, overdue, interval=32):
 # Per-tag proactive state: [switchWant, badRounds].
 #   switchWant -- consecutive re-decide rounds we have WANTED to switch cell (min-dwell hysteresis).
 #   badRounds  -- consecutive re-decide rounds without a fresh good fix (closed-loop fallback).
+#                 NOT reset by a blind rotation -- only a good fix resets it, so the blind-RR
+#                 trial cadence (FALLBACK_ROUNDS, then every TRIAL_ROUNDS) stays on schedule.
 tdoaProactiveState = {}
 
 
@@ -347,11 +349,26 @@ def scheduleTdoaGroupsProactiveCB(addr, last, overdue, interval=32):
         st = tdoaProactiveState.get(addr, [0, 0])
         goodAge = loposPy.tagGoodFixAge(addr, cfg.LOPOS_TDOA_PROACTIVE_MINHYPER)
         if (goodAge is None) or (goodAge > cfg.LOPOS_TDOA_PROACTIVE_QUALITY_MAXAGE):
-            # cold start / poor cell: count bad rounds, rotate once we have waited long enough
+            # No recent good fix. A blind round-robin trial only works when the tag HEARS the
+            # plan while the trial cell is also the covering one -- with a low beacon ratio
+            # those rarely coincide. So (1) any location hint -- a stale fix up to
+            # LOST_MAXAGE or the RSSI discovery centroid (localizeDiscoverTags, refreshed
+            # each cycle) -- picks the cell directly; (2) only when nothing is known rotate
+            # blind, holding each trial cell TRIAL_ROUNDS re-decide rounds (first move still
+            # after FALLBACK_ROUNDS) so a sometimes-deaf tag gets several chances per cell.
+            # st[1] counts bad rounds continuously; only a good fix resets it.
             st[1] += 1
-            if (core == -1) or (st[1] >= cfg.LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS):
+            st[0] = 0
+            cand = loposPy.findCloseCoreInGroup(addr, grp,
+                                                cfg.LOPOS_TDOA_PROACTIVE_LOST_MAXAGE, -1, 0)
+            if cand is not None:
+                core = cand
+            elif core == -1:
                 core = nextRoundRobinCore(grp, core)
-                st = [0, 0]
+            elif st[1] >= cfg.LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS:
+                past = st[1] - cfg.LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS
+                if (past % cfg.LOPOS_TDOA_PROACTIVE_TRIAL_ROUNDS) == 0:
+                    core = nextRoundRobinCore(grp, core)
         else:
             st[1] = 0
             cand = loposPy.findCloseCoreInGroup(addr, grp, cfg.LOPOS_TDOA_PROACTIVE_MAXAGE,

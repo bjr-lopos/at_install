@@ -235,17 +235,15 @@ def updateActiveTags(maxAge):
         order by 1
     """
 
-    #activeTag.clear()
-    for addr in activeTag.keys():
-        tagInfo = activeTag.get(addr)
-        age=-1
-        grp=tagInfo[1]
-        lastCell = tagInfo[2]
-        activeTag[addr] = [age, grp, lastCell]
-
+    # Liveness gate, symmetric: a tag is schedulable only while it keeps PROVING presence
+    # (a stat report within maxAge). Tags whose stat goes quiet are DROPPED -- no reason to
+    # spend TDoA slots on a device that is not responding; they re-enter (cold start, the
+    # proactive CB handles core=-1) on their next stat success. Entries used to persist for
+    # the process lifetime with age=-1, which kept scheduling long-gone tags until a restart.
     records = wrappedSql(sql, {'maxAge':maxAge})
     if records is None:
-        return
+        return                      # transient DB error: keep the current set unchanged
+    fresh = {}
     for tag in records:
         addr=tag[0]
         age=tag[1]
@@ -254,9 +252,13 @@ def updateActiveTags(maxAge):
         tagInfo =  activeTag.get(addr)
         if (tagInfo is not None):
             lastCell = tagInfo[2]
-        activeTag[addr] = [age, grp, lastCell]
-    #print("updateActiveTags", sorted(activeTag.items()))        
-    print("Len dict activeTag: ", len(activeTag))        
+        fresh[addr] = [age, grp, lastCell]
+    dropped = sorted(set(activeTag) - set(fresh))
+    if dropped:
+        print("activeTag: dropped (no stat in", maxAge, "s):", dropped)
+    activeTag.clear()
+    activeTag.update(fresh)
+    print("Len dict activeTag: ", len(activeTag))
 
 
 def isTagActive(addr):

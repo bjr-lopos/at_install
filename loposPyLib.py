@@ -171,12 +171,8 @@ def localizeDiscoverTags(age, minRxPow):
         from 
             (SELECT 
                 u.devTx as devTx, u.rxPow as rxPow, x, y, z, u.devRx as devRx, 
-                case 
-                    when u.rxPow > -70 then 10
-                    when u.rxPow > -78 then 7
-                    when u.rxPow > -85 then 1
-                    else 0
-                end as weight
+                1 as weight -- plain center-of-mass: every anchor that picked the tag up
+                            -- counts equally (was RSSI-bucket weighted 10/7/1/0)
             FROM 
                 uwbstat as u left join position as p on u.devRx = p.addr
             where 
@@ -389,6 +385,7 @@ def findCloseCore(dev, maxage):
 # membership all already exist; no C-core change.
 # -----------------------------------------------------------
 cellFootprint = {}      # core -> [(x,y), ...] convex hull of the cell's anchors (cores + edges)
+cellCOM = {}            # core -> (x,y) center of mass of ALL the cell's anchors (core + edges)
 
 
 def _convexHull(pts):
@@ -421,9 +418,11 @@ def _pointInPoly(x, y, poly):
 
 
 def updateCellFootprints():
-    """Load each cell's coverage polygon (convex hull of its anchors) for in-cell selection.
+    """Load each cell's coverage polygon (convex hull of its anchors) for in-cell selection,
+    plus the cell's center of mass (mean of ALL member anchors: core + edges) used as the
+    cell's reference point for nearest-cell distances.
     Cached; needs positionAnchor (all anchors) + the cell table. Same hull model as curateCells."""
-    global cellFootprint
+    global cellFootprint, cellCOM
     if len(cellFootprint) > 0:
         return
     getPositionAnchors()
@@ -439,6 +438,8 @@ def updateCellFootprints():
             p = positionAnchor.get(a)
             if p and p[0] is not None:
                 pts.append((float(p[0]), float(p[1])))
+        if pts:
+            cellCOM[core] = (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
         if len(pts) >= 3:
             hull = _convexHull(pts)
             if len(hull) >= 3:
@@ -494,8 +495,10 @@ def tagGoodFixAge(addr, minHyper):
 
 def findCloseCoreInGroup(dev, grp, maxage, current=-1, margin=0.0):
     """Proactive group-aware cell pick. Among the cores serving group `grp`, prefer the cell whose
-    coverage polygon contains the tag, else the nearest core. With hysteresis: if `current` is one
-    of the group's cores, keep it unless the new best is closer by more than `margin`.
+    coverage polygon contains the tag, else the cell whose center of mass (mean of ALL its
+    anchors, not just the core) is nearest -- pairs naturally with the discoveredTag fallback,
+    itself a center of mass of the anchors that picked the tag up. With hysteresis: if `current`
+    is one of the group's cores, keep it unless the new best is closer by more than `margin`.
     Returns a core id, or None when no usable (fresh) tag position is known -> caller falls back to
     round-robin (cold start / quality fallback)."""
     cores = cellsPerGroup.get(grp)
@@ -508,12 +511,14 @@ def findCloseCoreInGroup(dev, grp, maxage, current=-1, margin=0.0):
             return None
     dx = float(pos[0]); dy = float(pos[1])
     updateCellFootprints()
+    def _ref(c):                            # cell reference point: COM, core anchor as fallback
+        return cellCOM.get(c) or positionCoreAnchor.get(c)
     contains = [c for c in cores
                 if c in cellFootprint and _pointInPoly(dx, dy, cellFootprint[c])]
-    pool = contains if contains else [c for c in cores if c in positionCoreAnchor]
+    pool = contains if contains else [c for c in cores if _ref(c)]
     best = None; lDist2 = None
     for core in pool:
-        cp = positionCoreAnchor.get(core)
+        cp = _ref(core)
         if not cp:
             continue
         d2 = (dx - float(cp[0]))**2 + (dy - float(cp[1]))**2
@@ -522,8 +527,8 @@ def findCloseCoreInGroup(dev, grp, maxage, current=-1, margin=0.0):
     if best is None:
         return None
     # hysteresis: keep the current cell unless the new best beats it by more than `margin`
-    if current != -1 and current in cores and current in positionCoreAnchor and best != current:
-        cp = positionCoreAnchor[current]
+    if current != -1 and current in cores and _ref(current) and best != current:
+        cp = _ref(current)
         curD = ((dx - float(cp[0]))**2 + (dy - float(cp[1]))**2) ** 0.5
         bestD = lDist2 ** 0.5
         if (curD - bestD) <= margin:

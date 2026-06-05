@@ -316,8 +316,6 @@ def scheduleTdoaGroupsCB(addr, last, overdue, interval=32):
 # Per-tag proactive state: [switchWant, badRounds].
 #   switchWant -- consecutive re-decide rounds we have WANTED to switch cell (min-dwell hysteresis).
 #   badRounds  -- consecutive re-decide rounds without a fresh good fix (closed-loop fallback).
-#                 NOT reset by a blind rotation -- only a good fix resets it, so the blind-RR
-#                 trial cadence (FALLBACK_ROUNDS, then every TRIAL_ROUNDS) stays on schedule.
 tdoaProactiveState = {}
 
 
@@ -349,26 +347,11 @@ def scheduleTdoaGroupsProactiveCB(addr, last, overdue, interval=32):
         st = tdoaProactiveState.get(addr, [0, 0])
         goodAge = loposPy.tagGoodFixAge(addr, cfg.LOPOS_TDOA_PROACTIVE_MINHYPER)
         if (goodAge is None) or (goodAge > cfg.LOPOS_TDOA_PROACTIVE_QUALITY_MAXAGE):
-            # No recent good fix. A blind round-robin trial only works when the tag HEARS the
-            # plan while the trial cell is also the covering one -- with a low beacon ratio
-            # those rarely coincide. So (1) any location hint -- a stale fix up to
-            # LOST_MAXAGE or the RSSI discovery centroid (localizeDiscoverTags, refreshed
-            # each cycle) -- picks the cell directly; (2) only when nothing is known rotate
-            # blind, holding each trial cell TRIAL_ROUNDS re-decide rounds (first move still
-            # after FALLBACK_ROUNDS) so a sometimes-deaf tag gets several chances per cell.
-            # st[1] counts bad rounds continuously; only a good fix resets it.
+            # cold start / poor cell: count bad rounds, rotate once we have waited long enough
             st[1] += 1
-            st[0] = 0
-            cand = loposPy.findCloseCoreInGroup(addr, grp,
-                                                cfg.LOPOS_TDOA_PROACTIVE_LOST_MAXAGE, -1, 0)
-            if cand is not None:
-                core = cand
-            elif core == -1:
+            if (core == -1) or (st[1] >= cfg.LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS):
                 core = nextRoundRobinCore(grp, core)
-            elif st[1] >= cfg.LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS:
-                past = st[1] - cfg.LOPOS_TDOA_PROACTIVE_FALLBACK_ROUNDS
-                if (past % cfg.LOPOS_TDOA_PROACTIVE_TRIAL_ROUNDS) == 0:
-                    core = nextRoundRobinCore(grp, core)
+                st = [0, 0]
         else:
             st[1] = 0
             cand = loposPy.findCloseCoreInGroup(addr, grp, cfg.LOPOS_TDOA_PROACTIVE_MAXAGE,
@@ -517,9 +500,8 @@ def uwbScanCells():
     # one-shot re-added each HF, NOT the device repeat flag (same pattern as testSinkStress). That
     # opens enough room to schedule ALL rounds every HF (legacy-dense: each (core,edge) pair gets a
     # stat every HF). inter_sf=2 leaves an empty SF between rounds so the sink is not flooded.
-    # The moving TDoA window wraps the pool at LOPOS_LAST_USABLE_SF (claimRepeatingAndfixedSF),
-    # so scan rounds wrap along with it; repPoolRemaining() guards the cycle budget -- when the
-    # pool is nearly consumed this HF, the rotating cursor spreads the remainder over the next HFs.
+    # claimRepeatingAndfixedSF() sys.exit()s past LOPOS_LAST_USABLE_SF, so check room before each call;
+    # if the pool ever fills, the rotating cursor spreads the remainder over the next HFs.
     global uwb_ActorCnt
     global uwb_SFidx
     global scan_offset
@@ -531,8 +513,8 @@ def uwbScanCells():
     need = INTER * cfg.LOPOS_SF_BLOCK_SIZE
     scheduled = 0
     for i in range(n):
-        if loposPy.repPoolRemaining() < need:
-            break                                        # rep pool nearly full this cycle; rest go next HF
+        if loposPy.SFrepIdxRef + need > cfg.LOPOS_LAST_USABLE_SF:
+            break                                        # rep pool full this HF; rest go next HF
         rnd = rounds[(scan_offset + i) % n]
         rx = rnd.get("rx", [])[:cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1]   # up to 8 receivers @ actors 1..8
         tx = rnd.get("tx", [])[:cfg.LOPOS_SCENARIO_UWB_TAG_MAX]       # up to 14 transmitters @ actors 9..

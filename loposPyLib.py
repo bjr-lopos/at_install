@@ -150,44 +150,52 @@ def getNumCoreAnchors():
 def getCoreAnchors():
     return positionCoreAnchor.keys()
 
-def localizeDiscoverTags(age, minRxPow=None):
-    """Coarse tag location = plain center of mass of the anchors that captured the tag's
-    TDoA blinks in the last `age` seconds, from the `tdoa` capture table (dbAddTdoaInfo
-    stores EVERY capture, including rounds storeTdoaResult rejects on sync mismatch --
-    so even a stale/one-HF-late round still contributes discovery data). uwbstat is NOT
-    used: it never carries tag transmissions in this deployment (anchor-to-anchor only).
-    tdoa encoding: tag = dev-0x1000 (negatives are stripped-address reports -> skipped),
-    edge = anchor id (position addr = id + 0xA000). minRxPow kept for call compatibility;
-    tdoa has no rxPow, every capturing anchor counts equally (center of mass)."""
+def localizeDiscoverTags(age, minRxPow):
     global discoveredTag
     discoveredTag.clear()
+    #create index uwbstat_devRx on uwbstat (devRx); 
+    #create index uwbstat_devTx on uwbstat (devTx); 
+    #create index pos_addr on position (addr);
+    #create index uwbstat_upd_desc on uwbstat (updated desc);
     sql="""
-        select
-            e.tag + 4096 as addr,
-            avg(e.x) as x,
-            avg(e.y) as y,
-            avg(e.z) as z,
-            count(*) as edges
-        from
-            ( select t.tag as tag, t.edge as edge, avg(p.x) as x, avg(p.y) as y, avg(p.z) as z
-              from ( select distinct tag, edge from tdoa
-                     where TIMESTAMPDIFF(SECOND, updated, now()) < %(age)s and tag >= 0 ) as t
-              join position as p
-                on p.addr = t.edge + 40960 and IFNULL(p.numHyperbola, 0) = 0
-              group by t.tag, t.edge
-            ) as e
-        group by e.tag
+        select 
+            devTx, 
+            sum(rxPow * weight) /sum(weight) as rxPow, 
+            sum(x * weight) /sum(weight) as x, 
+            sum(y * weight) /sum(weight) as y, 
+            sum(z * weight) /sum(weight) as z,
+            count(*),
+            min(devRx),
+            max(devRx),
+            min(rxPow)
+        from 
+            (SELECT 
+                u.devTx as devTx, u.rxPow as rxPow, x, y, z, u.devRx as devRx, 
+                case 
+                    when u.rxPow > -70 then 10
+                    when u.rxPow > -78 then 7
+                    when u.rxPow > -85 then 1
+                    else 0
+                end as weight
+            FROM 
+                uwbstat as u left join position as p on u.devRx = p.addr
+            where 
+                TIMESTAMPDIFF(SECOND,u.updated,now()) < %(age)s
+            )
+            as wu
+        group by devTx
+        having sum(rxPow * weight) /sum(weight)  > %(minRxPow)s
     """
-    records = wrappedSql(sql, {'age':age})
+    records = wrappedSql(sql, {'age':age, 'minRxPow':minRxPow})
     if records is None:
         return
     for disc in records:
         addr=disc[0]
-        x=disc[1]
-        y=disc[2]
-        z=disc[3]
+        x=disc[2]
+        y=disc[3]
+        z=disc[4]
         discoveredTag[addr] = [x,y,z]
-    print("Discovered:", len(discoveredTag), "tags via capture COM")
+    print("Discovered:", discoveredTag)
 
 def getPositionTags():
     global positionTag
@@ -235,15 +243,17 @@ def updateActiveTags(maxAge):
         order by 1
     """
 
-    # Liveness gate, symmetric: a tag is schedulable only while it keeps PROVING presence
-    # (a stat report within maxAge). Tags whose stat goes quiet are DROPPED -- no reason to
-    # spend TDoA slots on a device that is not responding; they re-enter (cold start, the
-    # proactive CB handles core=-1) on their next stat success. Entries used to persist for
-    # the process lifetime with age=-1, which kept scheduling long-gone tags until a restart.
+    #activeTag.clear()
+    for addr in activeTag.keys():
+        tagInfo = activeTag.get(addr)
+        age=-1
+        grp=tagInfo[1]
+        lastCell = tagInfo[2]
+        activeTag[addr] = [age, grp, lastCell]
+
     records = wrappedSql(sql, {'maxAge':maxAge})
     if records is None:
-        return                      # transient DB error: keep the current set unchanged
-    fresh = {}
+        return
     for tag in records:
         addr=tag[0]
         age=tag[1]
@@ -252,13 +262,9 @@ def updateActiveTags(maxAge):
         tagInfo =  activeTag.get(addr)
         if (tagInfo is not None):
             lastCell = tagInfo[2]
-        fresh[addr] = [age, grp, lastCell]
-    dropped = sorted(set(activeTag) - set(fresh))
-    if dropped:
-        print("activeTag: dropped (no stat in", maxAge, "s):", dropped)
-    activeTag.clear()
-    activeTag.update(fresh)
-    print("Len dict activeTag: ", len(activeTag))
+        activeTag[addr] = [age, grp, lastCell]
+    #print("updateActiveTags", sorted(activeTag.items()))        
+    print("Len dict activeTag: ", len(activeTag))        
 
 
 def isTagActive(addr):
@@ -383,7 +389,6 @@ def findCloseCore(dev, maxage):
 # membership all already exist; no C-core change.
 # -----------------------------------------------------------
 cellFootprint = {}      # core -> [(x,y), ...] convex hull of the cell's anchors (cores + edges)
-cellCOM = {}            # core -> (x,y) center of mass of ALL the cell's anchors (core + edges)
 
 
 def _convexHull(pts):
@@ -416,11 +421,9 @@ def _pointInPoly(x, y, poly):
 
 
 def updateCellFootprints():
-    """Load each cell's coverage polygon (convex hull of its anchors) for in-cell selection,
-    plus the cell's center of mass (mean of ALL member anchors: core + edges) used as the
-    cell's reference point for nearest-cell distances.
+    """Load each cell's coverage polygon (convex hull of its anchors) for in-cell selection.
     Cached; needs positionAnchor (all anchors) + the cell table. Same hull model as curateCells."""
-    global cellFootprint, cellCOM
+    global cellFootprint
     if len(cellFootprint) > 0:
         return
     getPositionAnchors()
@@ -436,8 +439,6 @@ def updateCellFootprints():
             p = positionAnchor.get(a)
             if p and p[0] is not None:
                 pts.append((float(p[0]), float(p[1])))
-        if pts:
-            cellCOM[core] = (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
         if len(pts) >= 3:
             hull = _convexHull(pts)
             if len(hull) >= 3:
@@ -493,10 +494,8 @@ def tagGoodFixAge(addr, minHyper):
 
 def findCloseCoreInGroup(dev, grp, maxage, current=-1, margin=0.0):
     """Proactive group-aware cell pick. Among the cores serving group `grp`, prefer the cell whose
-    coverage polygon contains the tag, else the cell whose center of mass (mean of ALL its
-    anchors, not just the core) is nearest -- pairs naturally with the discoveredTag fallback,
-    itself a center of mass of the anchors that picked the tag up. With hysteresis: if `current`
-    is one of the group's cores, keep it unless the new best is closer by more than `margin`.
+    coverage polygon contains the tag, else the nearest core. With hysteresis: if `current` is one
+    of the group's cores, keep it unless the new best is closer by more than `margin`.
     Returns a core id, or None when no usable (fresh) tag position is known -> caller falls back to
     round-robin (cold start / quality fallback)."""
     cores = cellsPerGroup.get(grp)
@@ -509,14 +508,12 @@ def findCloseCoreInGroup(dev, grp, maxage, current=-1, margin=0.0):
             return None
     dx = float(pos[0]); dy = float(pos[1])
     updateCellFootprints()
-    def _ref(c):                            # cell reference point: COM, core anchor as fallback
-        return cellCOM.get(c) or positionCoreAnchor.get(c)
     contains = [c for c in cores
                 if c in cellFootprint and _pointInPoly(dx, dy, cellFootprint[c])]
-    pool = contains if contains else [c for c in cores if _ref(c)]
+    pool = contains if contains else [c for c in cores if c in positionCoreAnchor]
     best = None; lDist2 = None
     for core in pool:
-        cp = _ref(core)
+        cp = positionCoreAnchor.get(core)
         if not cp:
             continue
         d2 = (dx - float(cp[0]))**2 + (dy - float(cp[1]))**2
@@ -525,8 +522,8 @@ def findCloseCoreInGroup(dev, grp, maxage, current=-1, margin=0.0):
     if best is None:
         return None
     # hysteresis: keep the current cell unless the new best beats it by more than `margin`
-    if current != -1 and current in cores and _ref(current) and best != current:
-        cp = _ref(current)
+    if current != -1 and current in cores and current in positionCoreAnchor and best != current:
+        cp = positionCoreAnchor[current]
         curD = ((dx - float(cp[0]))**2 + (dy - float(cp[1]))**2) ** 0.5
         bestD = lDist2 ** 0.5
         if (curD - bestD) <= margin:
@@ -694,10 +691,6 @@ def checkForSchedulesFixed(table, scenario, _reqScheduleCB = None):
 
 SFidxRef=0
 SFrepIdxRef=0
-SFrepWrapped=False      # claimRepeatingAndfixedSF rotated past LOPOS_LAST_USABLE_SF this cycle
-SFrepCycleStart=None    # first slot claimed this planning cycle (overstress guard after a rotate)
-SFrepPrevCycleStart=None # first slot of the PREVIOUS cycle: this cycle must stop before it so
-                         # one-HF-late devices replaying last HF's slots always hit silent SFs
 
 def keepOutRepeatingAndfixedSF(SFid):
     adjust2allowedOffsets = {0:0, 1:0, 2:6, 3:5, 4:4, 5:3, 6:2, 7:1}  
@@ -711,39 +704,17 @@ def keepOutRepeatingAndfixedSF(SFid):
     SFid += adjust2allowedOffsets[blockOfs]
     return SFid        
 
-def isSFslotFree(SFid):
-    """Post-rotate safety: a wrapped-to slot is only reusable when no pending todo still
-    references it (e.g. one-shot tasks of the previous HF not yet consumed/aged out)."""
-    records = wrappedSql("select count(*) from todo where scheduleAT = %(SFid)s", {'SFid': SFid})
-    if records is None:
-        return True
-    return records[0][0] == 0
-
 def claimRepeatingAndfixedSF(SFid):
-    """Moving TDoA window: instead of failing past LOPOS_LAST_USABLE_SF, rotate back to
-    LOPOS_FIRST_REPEAT_SF+1 (right after the last provisioning/fixed slot). Block offsets
-    0-1 stay reserved (adjust2allowedOffsets). After a rotate every slot is checked to be
-    free (isSFslotFree) and a full lap back to this cycle's start = real overstress."""
-    global SFrepWrapped
-    adjust2allowedOffsets = {0:2, 1:1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}
+    adjust2allowedOffsets = {0:2, 1:1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}  
     if SFid <= cfg.LOPOS_FIRST_REPEAT_SF:
         SFid = cfg.LOPOS_FIRST_REPEAT_SF+ 1
-    while True:
-        if SFid > cfg.LOPOS_LAST_USABLE_SF:
-            SFrepWrapped = True
-            SFid = cfg.LOPOS_FIRST_REPEAT_SF + 1
-        SFid += adjust2allowedOffsets[SFid % cfg.LOPOS_SF_BLOCK_SIZE]
-        if SFid > cfg.LOPOS_LAST_USABLE_SF:
-            continue                            # offset adjust crossed the end -> rotate
-        if SFrepWrapped:
-            if (SFrepCycleStart is not None) and (SFid >= SFrepCycleStart):
-                deleteOldSchedules(0)
-                print("ERROR: Hyperframe overstressed!")
-                sys.exit()
-            if not isSFslotFree(SFid):
-                SFid += 1
-                continue
-        return SFid
+    if SFid >cfg.LOPOS_LAST_USABLE_SF:
+        deleteOldSchedules(0)
+        print("ERROR: Hyperframe overstressed!")
+        sys.exit()
+    blockOfs = SFid % cfg.LOPOS_SF_BLOCK_SIZE
+    SFid += adjust2allowedOffsets[blockOfs]
+    return SFid        
 
 def initSFidxRef():
     global SFidxRef
@@ -757,40 +728,9 @@ def getNextSFidxRef(inter_sf = 1):
     return SFidxCurr
 
 
-def _repPoolFwdDist(frm, to):
-    """Forward distance frm -> to inside the repeating pool, wrapping at LOPOS_LAST_USABLE_SF."""
-    if to == frm:
-        return 0
-    if to > frm:
-        return to - frm
-    return (cfg.LOPOS_LAST_USABLE_SF - frm) + (to - (cfg.LOPOS_FIRST_REPEAT_SF + 1))
-
-def repPoolRemaining():
-    """Slots left in the repeating pool this planning cycle before reaching the PREVIOUS
-    cycle's start. Stopping there keeps consecutive HFs slot-disjoint (the moving-window
-    goal: a one-HF-late replay lands in a silent SF). Callers like uwbScanCells use this
-    as the budget and defer the rest to the next HF; first cycle (no previous) is capped
-    to half the pool so the second cycle has room too."""
-    boundary = SFrepPrevCycleStart
-    if boundary is None:
-        if SFrepCycleStart is None:
-            return cfg.LOPOS_LAST_USABLE_SF - SFrepIdxRef
-        return max(0, (cfg.LOPOS_LAST_USABLE_SF - cfg.LOPOS_FIRST_REPEAT_SF) // 2
-                      - _repPoolFwdDist(SFrepCycleStart, SFrepIdxRef))
-    return _repPoolFwdDist(SFrepIdxRef, boundary)
-
 def initSFrepIdxRef():
-    """Moving TDoA window: do NOT reset to the pool start each HF -- continue from the
-    last slot the previous HF used, so the scenario blocks slide through the repeating
-    pool over time. A device acting on the previous HF's provisioning then hits silent
-    SFs instead of a live frame (kills the one-HF-late stale-sync race). Rotation back
-    to LOPOS_FIRST_REPEAT_SF+1 happens in claimRepeatingAndfixedSF."""
-    global SFrepIdxRef, SFrepWrapped, SFrepCycleStart, SFrepPrevCycleStart
-    SFrepPrevCycleStart = SFrepCycleStart
-    SFrepWrapped = False
-    SFrepCycleStart = None
-    SFrepIdxRef = claimRepeatingAndfixedSF(SFrepIdxRef)   # first run: 0 -> pool start (90)
-    SFrepCycleStart = SFrepIdxRef
+    global SFrepIdxRef
+    SFrepIdxRef = claimRepeatingAndfixedSF(0)
     return SFrepIdxRef
 
 def getNextSFrepIdxRef(inter_sf = 1, allowed_ofs=None):

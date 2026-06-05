@@ -257,6 +257,10 @@ moving window.
   ref A+1..B−1 never fetched its schedule that round (anchor id or 4-tag chunk)
   → those devices run the HF unprovisioned. Chronic ~40–70/h, device/radio-side,
   unaffected by the changes above; the dominant remaining provisioning-loss path.
+- After a `loposplan` restart only tags with a `stat` report in the last 900 s
+  are TDoA-scheduled (`updateActiveTags`); quiet tags re-enter on their next
+  stat success. **Intentional** liveness gate — presence is proven by a device
+  response, never presumed from history. Do not seed/fake it at startup.
 - Cross-group moves (tag carried to another group's area) are still unhandled:
   the Discover wide-net scenario needs `cell` rows for core 0 (admin SQL), which
   are not configured.

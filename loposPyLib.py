@@ -693,6 +693,8 @@ SFidxRef=0
 SFrepIdxRef=0
 SFrepWrapped=False      # claimRepeatingAndfixedSF rotated past LOPOS_LAST_USABLE_SF this cycle
 SFrepCycleStart=None    # first slot claimed this planning cycle (overstress guard after a rotate)
+SFrepPrevCycleStart=None # first slot of the PREVIOUS cycle: this cycle must stop before it so
+                         # one-HF-late devices replaying last HF's slots always hit silent SFs
 
 def keepOutRepeatingAndfixedSF(SFid):
     adjust2allowedOffsets = {0:0, 1:0, 2:6, 3:5, 4:4, 5:3, 6:2, 7:1}  
@@ -752,13 +754,36 @@ def getNextSFidxRef(inter_sf = 1):
     return SFidxCurr
 
 
+def _repPoolFwdDist(frm, to):
+    """Forward distance frm -> to inside the repeating pool, wrapping at LOPOS_LAST_USABLE_SF."""
+    if to == frm:
+        return 0
+    if to > frm:
+        return to - frm
+    return (cfg.LOPOS_LAST_USABLE_SF - frm) + (to - (cfg.LOPOS_FIRST_REPEAT_SF + 1))
+
+def repPoolRemaining():
+    """Slots left in the repeating pool this planning cycle before reaching the PREVIOUS
+    cycle's start. Stopping there keeps consecutive HFs slot-disjoint (the moving-window
+    goal: a one-HF-late replay lands in a silent SF). Callers like uwbScanCells use this
+    as the budget and defer the rest to the next HF; first cycle (no previous) is capped
+    to half the pool so the second cycle has room too."""
+    boundary = SFrepPrevCycleStart
+    if boundary is None:
+        if SFrepCycleStart is None:
+            return cfg.LOPOS_LAST_USABLE_SF - SFrepIdxRef
+        return max(0, (cfg.LOPOS_LAST_USABLE_SF - cfg.LOPOS_FIRST_REPEAT_SF) // 2
+                      - _repPoolFwdDist(SFrepCycleStart, SFrepIdxRef))
+    return _repPoolFwdDist(SFrepIdxRef, boundary)
+
 def initSFrepIdxRef():
     """Moving TDoA window: do NOT reset to the pool start each HF -- continue from the
     last slot the previous HF used, so the scenario blocks slide through the repeating
     pool over time. A device acting on the previous HF's provisioning then hits silent
     SFs instead of a live frame (kills the one-HF-late stale-sync race). Rotation back
     to LOPOS_FIRST_REPEAT_SF+1 happens in claimRepeatingAndfixedSF."""
-    global SFrepIdxRef, SFrepWrapped, SFrepCycleStart
+    global SFrepIdxRef, SFrepWrapped, SFrepCycleStart, SFrepPrevCycleStart
+    SFrepPrevCycleStart = SFrepCycleStart
     SFrepWrapped = False
     SFrepCycleStart = None
     SFrepIdxRef = claimRepeatingAndfixedSF(SFrepIdxRef)   # first run: 0 -> pool start (90)

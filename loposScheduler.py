@@ -500,8 +500,9 @@ def uwbScanCells():
     # one-shot re-added each HF, NOT the device repeat flag (same pattern as testSinkStress). That
     # opens enough room to schedule ALL rounds every HF (legacy-dense: each (core,edge) pair gets a
     # stat every HF). inter_sf=2 leaves an empty SF between rounds so the sink is not flooded.
-    # claimRepeatingAndfixedSF() sys.exit()s past LOPOS_LAST_USABLE_SF, so check room before each call;
-    # if the pool ever fills, the rotating cursor spreads the remainder over the next HFs.
+    # The moving TDoA window wraps the pool at LOPOS_LAST_USABLE_SF (claimRepeatingAndfixedSF),
+    # so scan rounds wrap along with it; repPoolRemaining() guards the cycle budget -- when the
+    # pool is nearly consumed this HF, the rotating cursor spreads the remainder over the next HFs.
     global uwb_ActorCnt
     global uwb_SFidx
     global scan_offset
@@ -513,8 +514,8 @@ def uwbScanCells():
     need = INTER * cfg.LOPOS_SF_BLOCK_SIZE
     scheduled = 0
     for i in range(n):
-        if loposPy.SFrepIdxRef + need > cfg.LOPOS_LAST_USABLE_SF:
-            break                                        # rep pool full this HF; rest go next HF
+        if loposPy.repPoolRemaining() < need:
+            break                                        # rep pool nearly full this cycle; rest go next HF
         rnd = rounds[(scan_offset + i) % n]
         rx = rnd.get("rx", [])[:cfg.LOPOS_SCENARIO_UWB_TAG_OFS - 1]   # up to 8 receivers @ actors 1..8
         tx = rnd.get("tx", [])[:cfg.LOPOS_SCENARIO_UWB_TAG_MAX]       # up to 14 transmitters @ actors 9..

@@ -691,6 +691,8 @@ def checkForSchedulesFixed(table, scenario, _reqScheduleCB = None):
 
 SFidxRef=0
 SFrepIdxRef=0
+SFrepWrapped=False      # claimRepeatingAndfixedSF rotated past LOPOS_LAST_USABLE_SF this cycle
+SFrepCycleStart=None    # first slot claimed this planning cycle (overstress guard after a rotate)
 
 def keepOutRepeatingAndfixedSF(SFid):
     adjust2allowedOffsets = {0:0, 1:0, 2:6, 3:5, 4:4, 5:3, 6:2, 7:1}  
@@ -704,17 +706,39 @@ def keepOutRepeatingAndfixedSF(SFid):
     SFid += adjust2allowedOffsets[blockOfs]
     return SFid        
 
+def isSFslotFree(SFid):
+    """Post-rotate safety: a wrapped-to slot is only reusable when no pending todo still
+    references it (e.g. one-shot tasks of the previous HF not yet consumed/aged out)."""
+    records = wrappedSql("select count(*) from todo where scheduleAT = %(SFid)s", {'SFid': SFid})
+    if records is None:
+        return True
+    return records[0][0] == 0
+
 def claimRepeatingAndfixedSF(SFid):
-    adjust2allowedOffsets = {0:2, 1:1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}  
+    """Moving TDoA window: instead of failing past LOPOS_LAST_USABLE_SF, rotate back to
+    LOPOS_FIRST_REPEAT_SF+1 (right after the last provisioning/fixed slot). Block offsets
+    0-1 stay reserved (adjust2allowedOffsets). After a rotate every slot is checked to be
+    free (isSFslotFree) and a full lap back to this cycle's start = real overstress."""
+    global SFrepWrapped
+    adjust2allowedOffsets = {0:2, 1:1, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}
     if SFid <= cfg.LOPOS_FIRST_REPEAT_SF:
         SFid = cfg.LOPOS_FIRST_REPEAT_SF+ 1
-    if SFid >cfg.LOPOS_LAST_USABLE_SF:
-        deleteOldSchedules(0)
-        print("ERROR: Hyperframe overstressed!")
-        sys.exit()
-    blockOfs = SFid % cfg.LOPOS_SF_BLOCK_SIZE
-    SFid += adjust2allowedOffsets[blockOfs]
-    return SFid        
+    while True:
+        if SFid > cfg.LOPOS_LAST_USABLE_SF:
+            SFrepWrapped = True
+            SFid = cfg.LOPOS_FIRST_REPEAT_SF + 1
+        SFid += adjust2allowedOffsets[SFid % cfg.LOPOS_SF_BLOCK_SIZE]
+        if SFid > cfg.LOPOS_LAST_USABLE_SF:
+            continue                            # offset adjust crossed the end -> rotate
+        if SFrepWrapped:
+            if (SFrepCycleStart is not None) and (SFid >= SFrepCycleStart):
+                deleteOldSchedules(0)
+                print("ERROR: Hyperframe overstressed!")
+                sys.exit()
+            if not isSFslotFree(SFid):
+                SFid += 1
+                continue
+        return SFid
 
 def initSFidxRef():
     global SFidxRef
@@ -729,8 +753,16 @@ def getNextSFidxRef(inter_sf = 1):
 
 
 def initSFrepIdxRef():
-    global SFrepIdxRef
-    SFrepIdxRef = claimRepeatingAndfixedSF(0)
+    """Moving TDoA window: do NOT reset to the pool start each HF -- continue from the
+    last slot the previous HF used, so the scenario blocks slide through the repeating
+    pool over time. A device acting on the previous HF's provisioning then hits silent
+    SFs instead of a live frame (kills the one-HF-late stale-sync race). Rotation back
+    to LOPOS_FIRST_REPEAT_SF+1 happens in claimRepeatingAndfixedSF."""
+    global SFrepIdxRef, SFrepWrapped, SFrepCycleStart
+    SFrepWrapped = False
+    SFrepCycleStart = None
+    SFrepIdxRef = claimRepeatingAndfixedSF(SFrepIdxRef)   # first run: 0 -> pool start (90)
+    SFrepCycleStart = SFrepIdxRef
     return SFrepIdxRef
 
 def getNextSFrepIdxRef(inter_sf = 1, allowed_ofs=None):

@@ -180,7 +180,20 @@ still completes full coverage.
 
 ---
 
-## Scheduling approaches (state as of 2026-06-05)
+## Scheduling approaches
+
+> **⚠ REVERTED 2026-06-05 evening (commit `0671e38`).** Everything in this section
+> below the *Proactive cell selection* subsection — the moving TDoA window, scan
+> wrap, capture-COM discovery, COM-based cell pick, held blind trials, symmetric
+> activeTag drop — was deployed on 2026-06-05 and **backed out the same evening**:
+> the afternoon deploys coincided with a fleet-wide stat-report outage (masked by
+> activeTag's persist-forever semantics), wrong-plot localizations via capture-COM
+> steering, and a total localization stop when the activeTag drop met the dead
+> stat table. Production runs `abbbab6`: system-wide proactive + WINDOW=60 +
+> cold-start fix only. The text is kept as design documentation; re-introduce one
+> change at a time with **stat freshness** (distinct addrs in `stat`, last 10 min
+> ≈ fleet size) and the `Len dict activeTag` journal line as the primary health
+> gates — the cause of the stat outage was never isolated to a single commit.
 
 ### Proactive, group-aware TDoA cell selection — system-wide
 

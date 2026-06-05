@@ -360,8 +360,10 @@ def scheduleTdoaGroupsProactiveCB(addr, last, overdue, interval=32):
                 if (core == -1):
                     core = nextRoundRobinCore(grp, core)
             elif (cand != core):
-                # min-dwell: only switch after wanting to switch for MINDWELL consecutive rounds
-                if st[0] >= cfg.LOPOS_TDOA_PROACTIVE_MINDWELL:
+                # min-dwell: only switch after wanting to switch for MINDWELL consecutive rounds.
+                # core == -1 (cold start with a surviving DB fix) bypasses the dwell -- otherwise the
+                # tag is scheduled to nonexistent core -1 (dev 0x9fff) for MINDWELL rounds after restart.
+                if (core == -1) or (st[0] >= cfg.LOPOS_TDOA_PROACTIVE_MINDWELL):
                     core = cand; st[0] = 0
                 else:
                     st[0] += 1

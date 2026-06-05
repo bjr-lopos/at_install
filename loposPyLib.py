@@ -150,48 +150,44 @@ def getNumCoreAnchors():
 def getCoreAnchors():
     return positionCoreAnchor.keys()
 
-def localizeDiscoverTags(age, minRxPow):
+def localizeDiscoverTags(age, minRxPow=None):
+    """Coarse tag location = plain center of mass of the anchors that captured the tag's
+    TDoA blinks in the last `age` seconds, from the `tdoa` capture table (dbAddTdoaInfo
+    stores EVERY capture, including rounds storeTdoaResult rejects on sync mismatch --
+    so even a stale/one-HF-late round still contributes discovery data). uwbstat is NOT
+    used: it never carries tag transmissions in this deployment (anchor-to-anchor only).
+    tdoa encoding: tag = dev-0x1000 (negatives are stripped-address reports -> skipped),
+    edge = anchor id (position addr = id + 0xA000). minRxPow kept for call compatibility;
+    tdoa has no rxPow, every capturing anchor counts equally (center of mass)."""
     global discoveredTag
     discoveredTag.clear()
-    #create index uwbstat_devRx on uwbstat (devRx); 
-    #create index uwbstat_devTx on uwbstat (devTx); 
-    #create index pos_addr on position (addr);
-    #create index uwbstat_upd_desc on uwbstat (updated desc);
     sql="""
-        select 
-            devTx, 
-            sum(rxPow * weight) /sum(weight) as rxPow, 
-            sum(x * weight) /sum(weight) as x, 
-            sum(y * weight) /sum(weight) as y, 
-            sum(z * weight) /sum(weight) as z,
-            count(*),
-            min(devRx),
-            max(devRx),
-            min(rxPow)
-        from 
-            (SELECT 
-                u.devTx as devTx, u.rxPow as rxPow, x, y, z, u.devRx as devRx, 
-                1 as weight -- plain center-of-mass: every anchor that picked the tag up
-                            -- counts equally (was RSSI-bucket weighted 10/7/1/0)
-            FROM 
-                uwbstat as u left join position as p on u.devRx = p.addr
-            where 
-                TIMESTAMPDIFF(SECOND,u.updated,now()) < %(age)s
-            )
-            as wu
-        group by devTx
-        having sum(rxPow * weight) /sum(weight)  > %(minRxPow)s
+        select
+            e.tag + 4096 as addr,
+            avg(e.x) as x,
+            avg(e.y) as y,
+            avg(e.z) as z,
+            count(*) as edges
+        from
+            ( select t.tag as tag, t.edge as edge, avg(p.x) as x, avg(p.y) as y, avg(p.z) as z
+              from ( select distinct tag, edge from tdoa
+                     where TIMESTAMPDIFF(SECOND, updated, now()) < %(age)s and tag >= 0 ) as t
+              join position as p
+                on p.addr = t.edge + 40960 and IFNULL(p.numHyperbola, 0) = 0
+              group by t.tag, t.edge
+            ) as e
+        group by e.tag
     """
-    records = wrappedSql(sql, {'age':age, 'minRxPow':minRxPow})
+    records = wrappedSql(sql, {'age':age})
     if records is None:
         return
     for disc in records:
         addr=disc[0]
-        x=disc[2]
-        y=disc[3]
-        z=disc[4]
+        x=disc[1]
+        y=disc[2]
+        z=disc[3]
         discoveredTag[addr] = [x,y,z]
-    print("Discovered:", discoveredTag)
+    print("Discovered:", len(discoveredTag), "tags via capture COM")
 
 def getPositionTags():
     global positionTag

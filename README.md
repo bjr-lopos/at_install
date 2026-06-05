@@ -186,14 +186,22 @@ still completes full coverage.
 > below the *Proactive cell selection* subsection — the moving TDoA window, scan
 > wrap, capture-COM discovery, COM-based cell pick, held blind trials, symmetric
 > activeTag drop — was deployed on 2026-06-05 and **backed out the same evening**:
-> the afternoon deploys coincided with a fleet-wide stat-report outage (masked by
-> activeTag's persist-forever semantics), wrong-plot localizations via capture-COM
-> steering, and a total localization stop when the activeTag drop met the dead
-> stat table. Production runs `abbbab6`: system-wide proactive + WINDOW=60 +
-> cold-start fix only. The text is kept as design documentation; re-introduce one
-> change at a time with **stat freshness** (distinct addrs in `stat`, last 10 min
-> ≈ fleet size) and the `Len dict activeTag` journal line as the primary health
-> gates — the cause of the stat outage was never isolated to a single commit.
+>**Root cause isolated same evening:** the capture-COM commit's
+> `localizeDiscoverTags` ran a non-sargable full scan of the `tdoa` firehose
+> table every planning cycle — scheduler time 0.35 s → ~5 s, so planning
+> completed ~SF 38: after the early fixed-pool SFs where **stat** frames live,
+> before the TDoA region (SF 90+) — killing stat reporting fleet-wide at exactly
+> 15:21 while TDoA kept running (masked by activeTag's persist-forever
+> semantics). Wrong-plot localizations came from capture-COM steering; the total
+> stop 17:31–17:50 was the activeTag drop meeting the dead stat table.
+> Production runs `abbbab6`: system-wide proactive + WINDOW=60 + cold-start fix
+> only. **Exonerated by log forensics:** moving window, COM selection, activeTag
+> drop — safe to re-introduce one at a time. Capture-COM needs a fast query
+> first (index on `tdoa(updated)` or a sargable asn-range predicate) plus a
+> measured runtime. Health gates for any redeploy: **stat freshness** (distinct
+> addrs in `stat`, last 10 min ≈ fleet size), `Len dict activeTag` (journal),
+> and **"Scheduler finished in" > ~2 s = alarm** (planning must beat the early
+> fixed-pool SFs).
 
 ### Proactive, group-aware TDoA cell selection — system-wide
 

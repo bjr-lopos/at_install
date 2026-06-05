@@ -23,11 +23,11 @@ scheduleTDoAwGroups=1
 # Uncomment tdoaProactiveCell to pick each tag's cell from its smoothed location instead of blind
 # round-robin; comment it out to revert to round-robin. The tunables below always apply when on.
 tdoaProactiveCell=1
-LOPOS_TDOA_PROACTIVE_GROUPS=[3,4]       # only these groups use proactive; others stay round-robin.
-                                       # Staged rollout: evaluate on grp3/4, then set [1,2,3,4] (or
-                                       # remove the line) to go system-wide.
+LOPOS_TDOA_PROACTIVE_GROUPS=[1,2,3,4]   # all groups proactive (system-wide). grp1/2 are not a valid
+                                       # control for grp3/4 (different physical zones), so the staged
+                                       # grp3/4-only A/B was dropped; evaluate absolute fix-rate trend.
 LOPOS_TDOA_PROACTIVE_SAMPLES=5          # median over the last N position fixes (outlier rejection)
-LOPOS_TDOA_PROACTIVE_WINDOW=30          # ... within this many seconds
+LOPOS_TDOA_PROACTIVE_WINDOW=60          # ... within this many seconds
 LOPOS_TDOA_PROACTIVE_MAXAGE=60          # ignore a tag position older than this (s) -> fallback
 LOPOS_TDOA_PROACTIVE_MARGIN=300         # switch cell only if a candidate is closer by > this (coord units)
 LOPOS_TDOA_PROACTIVE_MINDWELL=2         # ... and only after wanting to switch this many rounds (min-dwell)

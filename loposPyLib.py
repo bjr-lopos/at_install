@@ -673,13 +673,18 @@ def checkForSchedulesFixed(table, scenario, _reqScheduleCB = None):
         FROM 
             sys,
             plan as p
-        LEFT JOIN 
+        LEFT JOIN
             (select addr, max(updated) as last_update from """ + table + """ group by addr) as ref
-        ON    
-            p.addr = ref.addr	
-        where 
-            scenario = %(scenario)s 
-        order by 1;        
+        ON
+            p.addr = ref.addr
+        where
+            scenario = %(scenario)s
+            and (
+                    (ref.last_update IS NULL)
+                    or
+                    (TIMESTAMPDIFF(SECOND,ref.last_update,now()) > ( p.interval - (sys.SFmax*sys.SFticks/32768)) )
+            )
+        order by 1;
     """
     records = wrappedSql(sql, {'scenario':scenario} )
     for needSchedule in records:

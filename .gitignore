@@ -6,3 +6,4 @@ __pycache__
 viz/
 viz_proposed/
 curate_out/
+*.swp

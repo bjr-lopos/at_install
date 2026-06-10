@@ -1,5 +1,12 @@
 # Project guidance for Claude
 
+## System architecture
+LoPoS tracks free-ranging animals in an **RF-hostile, vegetated environment** (plants/trees/canopy attenuate and scatter the radio links and break line-of-sight). Two radio layers: a **sub-GHz long-range** link (provisioning + reporting) and **UWB** (ranging). Three device roles:
+- **Sink** — base station. Provisions **all** devices and captures their reports over the **sub-GHz** link.
+- **Anchors** — fixed reference stations (mains/large-cell powered). **In every cell the core anchor syncs the edge anchors via UWB**; the anchors capture the UWB pulses from tags and report those captures to the sink. A **cell** = one core anchor + its edge anchors (the `cell` table: core,edge).
+- **Tags** — carried by animals; **battery-critical**. A tag just emits a UWB pulse in its assigned **TDoA slot within the repeating hyperframe**, and separately reports its **stats** directly to the sink over sub-GHz.
+- A tag's position = **time-difference-of-arrival** of its single pulse across the surrounding (synced) anchors of a cell. The TDoA report's `sync` is that cell's **core anchor**; mismatched syncs in one (asn,tag) bundle are rejected (`storeTdoaResult`). Because provisioning over sub-GHz can't be guaranteed through vegetation, a tag may act on **stale slot/hyperframe info** and pulse where anchors aren't listening / against a stale sync → no fix; the **moving TDoA window** (scenario 8 sliding through the hyperframe) makes such stale pulses land in idle slots instead of corrupting a live measurement.
+
 ## Commit policy
 - **Never** add a `Co-Authored-By: Claude ...` trailer (or any Claude/AI co-author line) to commit messages. Commit messages must contain no AI attribution.
 
